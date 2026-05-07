@@ -329,7 +329,7 @@
             </div>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Nom</th><th>Type</th><th>Téléphone</th><th>Recherche</th><th>Statut</th></tr></thead>
+                <thead><tr><th>Nom</th><th>Type</th><th>Téléphone</th><th>Recherche</th><th>Statut</th><th></th></tr></thead>
                 <tbody id="contacts-body"></tbody>
               </table>
             </div>
@@ -576,7 +576,9 @@ function renderContacts(filter='') {
   const badges = {Chaud:'badge-red',Tiède:'badge-amber',Froid:'badge-blue',Client:'badge-green'};
   const filtered = contacts.filter(c => !filter || (c.prenom+' '+c.nom).toLowerCase().includes(filter.toLowerCase()));
   document.getElementById('contact-count').textContent = filtered.length;
-  document.getElementById('contacts-body').innerHTML = filtered.map(c => `
+  document.getElementById('contacts-body').innerHTML = filtered.map(c => {
+    const idx = contacts.indexOf(c);
+    return `
     <tr>
       <td style="display:flex;align-items:center;gap:8px">
         <span class="avatar">${c.prenom[0]}${c.nom[0]}</span>${c.prenom} ${c.nom}
@@ -585,9 +587,19 @@ function renderContacts(filter='') {
       <td>${c.tel}</td>
       <td>${c.bien}</td>
       <td><span class="badge ${badges[c.statut]||'badge-blue'}">${c.statut}</span></td>
-    </tr>`).join('');
+      <td><button class="btn btn-sm" onclick="deleteContact(${idx})" style="color:#A32D2D;border-color:#F7C1C1" title="Supprimer"><i class="ti ti-trash"></i></button></td>
+    </tr>`;
+  }).join('');
 }
 function filterContacts() { renderContacts(document.getElementById('search-input').value); }
+function deleteContact(idx) {
+  const c = contacts[idx];
+  if (!confirm('Supprimer ' + c.prenom + ' ' + c.nom + ' ?')) return;
+  contacts.splice(idx, 1);
+  document.getElementById('stat-contacts').textContent = contacts.length;
+  renderContacts(document.getElementById('search-input').value);
+  showNotif(c.prenom + ' ' + c.nom + ' supprimé.', 'amber');
+}
 
 function addContact() {
   const p = document.getElementById('c-prenom').value.trim();
@@ -609,16 +621,26 @@ function addContact() {
 // ---- BIENS ----
 function renderBiens() {
   const badges = {'En vente':'badge-blue','En location':'badge-green','Mandat':'badge-purple','Compromis':'badge-amber','Acte final':'badge-green'};
-  document.getElementById('biens-body').innerHTML = biens.map(b => `
+  document.getElementById('biens-body').innerHTML = biens.map((b, idx) => `
     <tr>
       <td><b>${b.nom}</b></td>
       <td>${b.type}</td>
       <td>${b.surface} m²</td>
       <td><b>${b.prix}</b></td>
       <td><span class="badge ${badges[b.statut]||'badge-blue'}">${b.statut}</span></td>
-      <td><button class="btn btn-sm" onclick="showPage('annonces',null)"><i class="ti ti-sparkles"></i> Annonce IA</button></td>
+      <td style="display:flex;gap:6px">
+        <button class="btn btn-sm" onclick="showPage('annonces',null)" title="Annonce IA"><i class="ti ti-sparkles"></i></button>
+        <button class="btn btn-sm" onclick="deleteBien(${idx})" style="color:#A32D2D;border-color:#F7C1C1" title="Supprimer"><i class="ti ti-trash"></i></button>
+      </td>
     </tr>`).join('');
   document.getElementById('bien-count').textContent = biens.length + ' biens';
+}
+function deleteBien(idx) {
+  const b = biens[idx];
+  if (!confirm('Supprimer ' + b.nom + ' ?')) return;
+  biens.splice(idx, 1);
+  renderBiens();
+  showNotif(b.nom + ' supprimé.', 'amber');
 }
 
 // ---- PIPELINE ----
