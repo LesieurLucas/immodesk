@@ -540,14 +540,35 @@ function renderPipeline(){
     </div>`).join('');
 }
 
-// === AGENDA ===
-let calYear=2026,calMonth=4; // 0-indexed, 4=Mai
 
-function loadEvents(){try{return JSON.parse(localStorage.getItem('im_events'))||{'2026-5-7':'Visite T3','2026-5-9':'Compromis Chen','2026-5-14':'Visite Vincennes','2026-5-16':'Notaire','2026-5-21':'Mandat Girard','2026-5-23':'Visite studio','2026-5-28':'Relance'};}catch(e){return {};}}
+// === AGENDA ===
+let calYear=2026,calMonth=4;
+
+function loadEvents(){
+  try{
+    const raw=localStorage.getItem('im_events');
+    if(!raw) return {
+      '2026-5-7':{title:'Visite T3',type:'Visite',heure:'14:00'},
+      '2026-5-9':{title:'Compromis Chen',type:'Compromis',heure:'10:30'},
+      '2026-5-14':{title:'Visite Vincennes',type:'Visite',heure:''},
+      '2026-5-16':{title:'Notaire',type:'Acte notarié',heure:'09:00'},
+      '2026-5-21':{title:'Mandat Girard',type:'Mandat',heure:''},
+      '2026-5-23':{title:'Visite studio',type:'Visite',heure:'16:30'},
+      '2026-5-28':{title:'Relance clients',type:'Relance',heure:''}
+    };
+    const parsed=JSON.parse(raw);
+    const migrated={};
+    for(const[k,v] of Object.entries(parsed)){
+      migrated[k]=typeof v==='string'?{title:v,type:'Autre',heure:''}:v;
+    }
+    return migrated;
+  }catch(e){return {};}
+}
 function saveEvents(){try{localStorage.setItem('im_events',JSON.stringify(calEvents));}catch(e){}}
 let calEvents=loadEvents();
 
 const MOIS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const TYPE_BADGE={'Visite':'badge-blue','Compromis':'badge-amber','Acte notarié':'badge-purple','Mandat':'badge-green','Relance':'badge-red','Autre':'badge-blue'};
 
 function calPrev(){calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderAgenda();}
 function calNext(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderAgenda();}
@@ -555,7 +576,7 @@ function calToday(){const n=new Date();calYear=n.getFullYear();calMonth=n.getMon
 
 function renderAgenda(){
   const today=new Date();
-  const isCurrentMonth=today.getFullYear()===calYear&&today.getMonth()===calMonth;
+  const isCurMo=today.getFullYear()===calYear&&today.getMonth()===calMonth;
   document.getElementById('cal-title').textContent=MOIS[calMonth]+' '+calYear;
   document.getElementById('cal-header').innerHTML=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(d=>`<div class="cal-day-name">${d}</div>`).join('');
   const firstDay=new Date(calYear,calMonth,1).getDay();
@@ -566,10 +587,11 @@ function renderAgenda(){
   for(let i=1;i<=daysInMonth;i++){
     const key=calYear+'-'+(calMonth+1)+'-'+i;
     const ev=calEvents[key];
-    const isToday=isCurrentMonth&&i===today.getDate();
+    const isToday=isCurMo&&i===today.getDate();
+    const label=ev?(ev.heure?ev.heure+' '+ev.title:ev.title):'';
     h+=`<div class="cal-day ${isToday?'today':ev?'has-event':''}" onclick="onDayClick(${i})">
       <span>${i}</span>
-      ${ev?`<span class="cal-event-label">${ev}</span>`:''}
+      ${ev?`<span class="cal-event-label">${label}</span>`:''}
     </div>`;
   }
   document.getElementById('cal-grid').innerHTML=h;
@@ -577,60 +599,91 @@ function renderAgenda(){
 }
 
 function renderEventsList(){
-  const evs=Object.entries(calEvents).filter(([k])=>{const p=k.split('-');return parseInt(p[0])===calYear&&parseInt(p[1])===(calMonth+1);}).sort((a,b)=>parseInt(a[0].split('-')[2])-parseInt(b[0].split('-')[2]));
+  const evs=Object.entries(calEvents)
+    .filter(([k])=>{const p=k.split('-');return parseInt(p[0])===calYear&&parseInt(p[1])===(calMonth+1);})
+    .sort((a,b)=>{
+      const da=parseInt(a[0].split('-')[2]),db=parseInt(b[0].split('-')[2]);
+      if(da!==db)return da-db;
+      return (a[1].heure||'99:99').localeCompare(b[1].heure||'99:99');
+    });
   const el=document.getElementById('cal-events-list');
-  if(!evs.length){el.innerHTML='';return;}
+  if(!evs.length){
+    el.innerHTML='<div style="border-top:0.5px solid var(--border);padding-top:1rem;margin-top:.5rem;font-size:13px;color:var(--text3);text-align:center;padding-bottom:.5rem">Aucun événement ce mois-ci — cliquez sur un jour pour en ajouter</div>';
+    return;
+  }
   el.innerHTML=`<div style="border-top:0.5px solid var(--border);padding-top:1rem;margin-top:.5rem">
-    <div style="font-size:12px;font-weight:500;color:var(--text3);margin-bottom:.5rem">ÉVÉNEMENTS DU MOIS</div>
-    ${evs.map(([k,v])=>{const d=k.split('-')[2];return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:var(--surface2);border-radius:var(--radius);margin-bottom:6px">
-      <div style="display:flex;align-items:center;gap:10px">
-        <span style="width:28px;height:28px;background:var(--blue-bg);color:var(--blue-text);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600">${d}</span>
-        <span style="font-size:13px">${v}</span>
-      </div>
-      <button class="btn btn-sm btn-danger" onclick="deleteEvent('${k}')" title="Supprimer"><i class="ti ti-trash"></i></button>
-    </div>`;}).join('')}
+    <div style="font-size:12px;font-weight:500;color:var(--text3);margin-bottom:.75rem">ÉVÉNEMENTS DU MOIS (${evs.length})</div>
+    ${evs.map(([k,v])=>{
+      const d=k.split('-')[2];
+      const badge=TYPE_BADGE[v.type]||'badge-blue';
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-radius:var(--radius);margin-bottom:6px;gap:8px">
+        <div style="display:flex;align-items:center;gap:10px;min-width:0">
+          <span style="width:32px;height:32px;background:var(--blue-bg);color:var(--blue-text);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0">${d}</span>
+          <div style="min-width:0">
+            <div style="font-size:13px;font-weight:500">${v.title}</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:2px">
+              <span class="badge ${badge}" style="font-size:10px">${v.type}</span>
+              ${v.heure?`<span style="font-size:11px;color:var(--text3)"><i class="ti ti-clock" style="font-size:11px;vertical-align:-1px"></i> ${v.heure}</span>`:''}
+            </div>
+          </div>
+        </div>
+        <div class="actions-cell">
+          <button class="btn btn-sm" onclick="openEditEvent('${k}')" title="Modifier"><i class="ti ti-edit"></i></button>
+          <button class="btn btn-sm btn-danger" onclick="deleteEvent('${k}')" title="Supprimer"><i class="ti ti-trash"></i></button>
+        </div>
+      </div>`;
+    }).join('')}
   </div>`;
 }
 
 function onDayClick(day){
   const key=calYear+'-'+(calMonth+1)+'-'+day;
-  if(calEvents[key]){
-    if(confirm('Supprimer l\'événement "'+calEvents[key]+'" ?')){deleteEvent(key);}
-  } else {
-    openAddEventForDay(day);
-  }
+  if(calEvents[key]) openEditEvent(key);
+  else openAddEventForDay(day);
 }
 
-function openAddEvent(){openAddEventForDay(new Date().getDate());}
+function openAddEvent(){openAddEventForDay('');}
 
-function openAddEventForDay(day){
-  const html=`<div class="form-group">
-    <label>Date</label>
-    <input type="number" id="ev-day" value="${day}" min="1" max="31" style="width:100px">
-    <span style="font-size:12px;color:var(--text3);margin-left:8px">${MOIS[calMonth]} ${calYear}</span>
+function eventForm(day,ev){
+  ev=ev||{};
+  const types=['Visite','Compromis','Acte notarié','Mandat','Relance','Autre'];
+  return `<div class="form-row">
+    <div><label>Jour *</label><input type="number" id="ev-day" value="${day}" min="1" max="31" placeholder="15"></div>
+    <div><label>Heure (optionnel)</label><input type="time" id="ev-heure" value="${ev.heure||''}"></div>
   </div>
   <div class="form-group">
-    <label>Événement *</label>
-    <input id="ev-title" placeholder="Visite T3 Montmartre, Notaire..." autofocus>
+    <label>Titre *</label>
+    <input id="ev-title" value="${ev.title||''}" placeholder="Ex: Visite T3 Montmartre">
   </div>
   <div class="form-group">
     <label>Type</label>
-    <select id="ev-type">
-      <option>Visite</option><option>Compromis</option><option>Acte notarié</option><option>Mandat</option><option>Relance</option><option>Autre</option>
-    </select>
+    <select id="ev-type">${types.map(t=>`<option${(ev.type||'Visite')===t?' selected':''}>${t}</option>`).join('')}</select>
   </div>`;
-  openModal('Ajouter un événement',html,'add-event');
+}
+
+function openAddEventForDay(day){
+  openModal('Ajouter un événement',eventForm(day),'add-event');
+  setTimeout(()=>document.getElementById('ev-day')?.focus(),60);
+}
+
+function openEditEvent(key){
+  const ev=calEvents[key];
+  const day=key.split('-')[2];
+  openModal('Modifier l\'événement',eventForm(day,ev),'edit-event',key);
+  setTimeout(()=>document.getElementById('ev-title')?.focus(),60);
 }
 
 function saveEvent(){
   const day=parseInt(document.getElementById('ev-day').value);
   const title=document.getElementById('ev-title').value.trim();
   const type=document.getElementById('ev-type').value;
-  if(!title){alert('Titre requis');return;}
-  const key=calYear+'-'+(calMonth+1)+'-'+day;
-  calEvents[key]=(type!=='Autre'?type+' — ':'')+title;
+  const heure=document.getElementById('ev-heure').value||'';
+  if(!day||!title){alert('Jour et titre requis');return;}
+  const newKey=calYear+'-'+(calMonth+1)+'-'+day;
+  if(mMode==='edit-event'&&mIdx&&mIdx!==newKey) delete calEvents[mIdx];
+  calEvents[newKey]={title,type,heure};
   saveEvents();renderAgenda();closeModal();
-  notif('Événement ajouté.');
+  notif(mMode==='add-event'?'Événement ajouté.':'Événement mis à jour.');
 }
 
 function deleteEvent(key){
@@ -638,6 +691,7 @@ function deleteEvent(key){
   saveEvents();renderAgenda();
   notif('Événement supprimé.','amber');
 }
+
 
 // === CSV ===
 function exportCSV(){
