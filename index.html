@@ -413,7 +413,7 @@ function openModal(title,html,mode,idx=null){
 }
 function closeModal(){document.getElementById('modal-backdrop').classList.add('hidden');}
 function closeModalBg(e){if(e.target===document.getElementById('modal-backdrop'))closeModal();}
-function saveModal(){if(mMode?.includes('contact'))saveContact();if(mMode?.includes('bien'))saveBien();if(mMode==='add-event')saveEvent();}
+function saveModal(){if(mMode?.includes('contact'))saveContact();if(mMode?.includes('bien'))saveBien();if(mMode==='add-event'||mMode==='edit-event')saveEvent();}
 
 // === CONTACTS ===
 function cForm(c={}) {
