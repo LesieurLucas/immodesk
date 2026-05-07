@@ -158,15 +158,15 @@
 
     <!-- API key section (collapsed) -->
     <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:0.5px solid var(--border)">
-      <button onclick="toggleApiSection()" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text3);display:flex;align-items:center;gap:4px;width:100%">
+      <button id="login-key-btn" onclick="toggleApiSection()" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text3);display:flex;align-items:center;gap:4px;width:100%;display:none">
         <i class="ti ti-key" style="font-size:14px"></i> Configurer la clé IA (optionnel)
         <i class="ti ti-chevron-down" id="api-chevron" style="font-size:14px;margin-left:auto;transition:transform .2s"></i>
       </button>
       <div id="api-section" style="display:none;margin-top:.75rem">
         <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Clé API Anthropic</label>
-        <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." style="font-family:monospace;font-size:12px;margin-bottom:8px">
+        <input type="password" id="api-key-input" id="api-key-input" placeholder="AIzaSy... (Gemini) ou sk-ant-... (Claude)" style="font-family:monospace;font-size:12px;margin-bottom:8px">
         <div style="font-size:11px;color:var(--text3)">
-          <a href="https://console.anthropic.com" target="_blank" style="color:var(--blue)">→ Obtenir une clé gratuite</a>
+          <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--blue)">→ Clé Gemini gratuite (aistudio.google.com)</a> · <a href="https://console.anthropic.com" target="_blank" style="color:var(--text3);font-size:11px">Claude (payant)</a>
         </div>
       </div>
     </div>
@@ -225,7 +225,7 @@
       <div class="topbar-actions">
         <button class="btn btn-hide" onclick="openAddContact()"><i class="ti ti-user-plus"></i> Contact</button>
         <button class="btn btn-primary" onclick="openAddBien()"><i class="ti ti-home-plus"></i> Bien</button>
-        <button class="btn" onclick="showKeySettings()" title="Clé API" style="padding:7px 10px"><i class="ti ti-key"></i></button>
+        <button class="btn" id="btn-api-key" onclick="showKeySettings()" title="Clé API" style="padding:7px 10px;display:none"><i class="ti ti-key"></i></button>
         <div id="admin-badge" style="display:none;padding:4px 10px;background:#FCEBEB;color:#791F1F;border-radius:var(--radius);font-size:11px;font-weight:600;cursor:pointer" onclick="showPage('admin',this)" title="Panneau admin"><i class="ti ti-shield" style="font-size:13px;vertical-align:-2px"></i> Admin</div>
       </div>
     </div>
@@ -300,7 +300,7 @@
       <!-- ANNONCES IA -->
       <div id="page-annonces" class="hidden">
         <div class="card">
-          <div class="ai-header"><i class="ti ti-sparkles" style="font-size:20px;color:var(--purple)"></i><span class="card-title">Rédaction d'annonce par IA</span><span class="ai-badge">Claude IA</span></div>
+          <div class="ai-header"><i class="ti ti-sparkles" style="font-size:20px;color:var(--purple)"></i><span class="card-title">Rédaction d'annonce par IA</span><span class="ai-badge" id="ai-provider-badge">IA</span></div>
           <p style="font-size:13px;color:var(--text2);margin-bottom:1rem">Décrivez le bien, l'IA rédige une annonce professionnelle prête à publier.</p>
           <div class="form-row">
             <div><label>Type de bien</label><select id="ai-type"><option>Appartement T3</option><option>Maison 5 pièces</option><option>Studio</option><option>Appartement T2</option><option>Villa</option><option>Loft</option></select></div>
@@ -326,7 +326,7 @@
       <!-- RELANCES IA -->
       <div id="page-relances" class="hidden">
         <div class="card">
-          <div class="ai-header"><i class="ti ti-mail-forward" style="font-size:20px;color:var(--purple)"></i><span class="card-title">Relances automatiques</span><span class="ai-badge">Claude IA</span></div>
+          <div class="ai-header"><i class="ti ti-mail-forward" style="font-size:20px;color:var(--purple)"></i><span class="card-title">Relances automatiques</span><span class="ai-badge" id="ai-provider-badge">IA</span></div>
           <p style="font-size:13px;color:var(--text2);margin-bottom:1rem">Générez un message de relance personnalisé en 1 clic.</p>
           <div class="form-row">
             <div><label>Contact</label><select id="r-contact"><option>M. Laurent (sans réponse 5j)</option><option>Mme Bertrand (visite il y a 1 semaine)</option><option>Famille Chen (offre en attente)</option></select></div>
@@ -1463,6 +1463,49 @@ function exportCSV(){
 // === CLAUDE IA ===
 let APIKEY='';
 let currentUser={email:'',role:'user'};
+
+function isGeminiKey(k){return k&&k.startsWith('AIza');}
+
+function stripMarkdown(txt){
+  return txt
+    .replace(/\*\*(.*?)\*\*/g,'$1')   // **gras** → gras
+    .replace(/\*(.*?)\*/g,'$1')        // *italique* → italique
+    .replace(/^#+\s*/gm,'')            // ## titres
+    .replace(/^[-*]\s+/gm,'• ')        // listes → puces simples
+    .replace(/`([^`]+)`/g,'$1')        // `code`
+    .trim();
+}
+
+async function callAI(prompt){
+  if(!APIKEY)throw new Error('Clé API manquante');
+  if(isGeminiKey(APIKEY)){
+    const url='https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+APIKEY;
+    const r=await fetch(url,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        contents:[{parts:[{text:prompt}]}],
+        generationConfig:{maxOutputTokens:1200,temperature:0.7}
+      })
+    });
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error((e.error&&e.error.message)||'Erreur Gemini '+r.status);}
+    const d=await r.json();
+    const raw=d.candidates?.[0]?.content?.parts?.[0]?.text||'Erreur de génération.';
+    return stripMarkdown(raw);
+  } else {
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':APIKEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,messages:[{role:'user',content:prompt}]})
+    });
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error((e.error&&e.error.message)||'Erreur Claude '+r.status);}
+    const d=await r.json();
+    return d.content?.map(function(b){return b.text||'';}).join('')||'Erreur.';
+  }
+}
+
+// Legacy alias
+async function callClaude(prompt){return callAI(prompt);}
 async function callClaude(prompt){
   if(!APIKEY)throw new Error('Clé API manquante');
   const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':APIKEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,messages:[{role:'user',content:prompt}]})});
@@ -1475,13 +1518,37 @@ function setRes(id,txt){const e=document.getElementById(id);e.classList.remove('
 async function genererAnnonce(){
   if(!APIKEY){notif('Clé API manquante — cliquez sur 🔑','amber');return;}
   document.getElementById('ai-actions').classList.add('hidden');setLoad('ai-result');
-  try{const r=await callClaude(`Agent immobilier expert. Annonce en français style ${document.getElementById('ai-style').value}. Bien : ${document.getElementById('ai-type').value}, ${document.getElementById('ai-surface').value}m², ${document.getElementById('ai-ville').value}, ${document.getElementById('ai-prix').value}. Points forts : ${document.getElementById('ai-points').value}. Titre + description + points clés ~130 mots. Sans markdown.`);setRes('ai-result',r);document.getElementById('ai-actions').classList.remove('hidden');}
+  const style=document.getElementById('ai-style').value;
+  const type=document.getElementById('ai-type').value;
+  const surface=document.getElementById('ai-surface').value;
+  const ville=document.getElementById('ai-ville').value;
+  const prix=document.getElementById('ai-prix').value;
+  const points=document.getElementById('ai-points').value;
+  const promptAnnonce='Rédige directement une annonce immobilière professionnelle en français pour ce bien :\n'
+    +'Type : '+type+'\nSurface : '+surface+' m²\nVille : '+ville+'\nPrix : '+prix+'\nPoints forts : '+points+'\n'
+    +'Style : '+style+'\n\n'
+    +'Commence directement par le titre accrocheur, puis la description (2-3 phrases), puis les points clés. '
+    +'Environ 130 mots. Aucun commentaire, aucune introduction, aucun titre de section, uniquement le texte de l\'annonce.';
+  try{const r=await callAI(promptAnnonce);setRes('ai-result',r);document.getElementById('ai-actions').classList.remove('hidden');}
   catch(e){setRes('ai-result','Erreur : '+e.message);}
 }
 async function genererRelance(){
   if(!APIKEY){notif('Clé API manquante — cliquez sur 🔑','amber');return;}
   document.getElementById('r-actions').classList.add('hidden');setLoad('r-result');
-  try{const r=await callClaude(`Agent immobilier. Message de relance ${document.getElementById('r-canal').value} en français. Contexte : ${document.getElementById('r-context').value}. Ton : ${document.getElementById('r-ton').value}. Pour : ${document.getElementById('r-contact').value}. Court, humain. SMS<160 chars. Email 3-4 phrases. Sans markdown.`);setRes('r-result',r);document.getElementById('r-actions').classList.remove('hidden');}
+  const canal=document.getElementById('r-canal').value;
+  const contact=document.getElementById('r-contact').value;
+  const contexte=document.getElementById('r-context').value;
+  const ton=document.getElementById('r-ton').value;
+  let instructions='';
+  if(canal==='SMS') instructions='Exactement 1 SMS de moins de 160 caractères.';
+  else if(canal==='WhatsApp') instructions='2-3 phrases courtes et directes, style WhatsApp.';
+  else instructions='Un email complet avec objet et corps du message (3-4 phrases).';
+  const promptRelance='Écris directement un message de relance immobilière en français.\n'
+    +'Destinataire : '+contact+'\nCanal : '+canal+'\nContexte : '+contexte+'\nTon : '+ton+'\n'
+    +instructions+'\n\n'
+    +'Commence directement par le message (objet si email, texte si SMS/WhatsApp). '
+    +'Aucune introduction, aucun commentaire, aucune explication. Juste le message prêt à envoyer.';
+  try{const r=await callAI(promptRelance);setRes('r-result',r);document.getElementById('r-actions').classList.remove('hidden');}
   catch(e){setRes('r-result','Erreur : '+e.message);}
 }
 function copyText(id){navigator.clipboard?.writeText(document.getElementById(id).textContent).then(()=>notif('Copié !'));}
@@ -1531,6 +1598,9 @@ function doLogin(){
   const users=getUsers();
   const match=users.find(function(u){return u.email.toLowerCase()===email&&u.pwd===pwd;});
   if(!match){showLoginError('Email ou mot de passe incorrect.');return;}
+  // Show API key section only for admin
+  const loginKeyBtn=document.getElementById('login-key-btn');
+  if(loginKeyBtn) loginKeyBtn.style.display=(match.role==='admin'?'flex':'none');
   // Save session
   if(document.getElementById('login-remember').checked){
     try{localStorage.setItem('im_session',JSON.stringify({email:email,role:match.role||'agent',nom:match.nom||email,ts:Date.now()}));}catch(e){}
@@ -1538,12 +1608,11 @@ function doLogin(){
   currentUser={email:email,role:match.role||'agent',nom:match.nom||email};
   // Save API key if provided
   const apiKey=(document.getElementById('api-key-input').value||'').trim();
-  if(apiKey.startsWith('sk-ant-')){
+  if(apiKey.startsWith('AIza')||apiKey.startsWith('sk-ant-')){
     APIKEY=apiKey;
     try{localStorage.setItem('im_key',apiKey);}catch(e){}
   } else {
-    // Load saved key
-    try{const k=localStorage.getItem('im_key')||'';if(k.startsWith('sk-ant-'))APIKEY=k;}catch(e){}
+    try{const k=localStorage.getItem('im_key')||'';if(k.startsWith('AIza')||k.startsWith('sk-ant-'))APIKEY=k;}catch(e){}
   }
   document.getElementById('setup-screen').style.display='none';
   document.getElementById('main-app').style.display='flex';
@@ -1559,10 +1628,10 @@ function doLogout(){
 }
 
 function showKeySettings(){
+  if(currentUser.role!=='admin'){notif('Accès réservé à l\'administrateur.','amber');return;}
   const cur=APIKEY?APIKEY.slice(0,14)+'...':'Non configurée';
   const k=prompt('Clé API IA actuelle : '+cur+'\n\nNouvelle clé (sk-ant-...) :');
-  if(k&&k.trim().startsWith('sk-ant-')){APIKEY=k.trim();try{localStorage.setItem('im_key',APIKEY);}catch(e){}notif('Clé API mise à jour.');}
-  else if(k)notif('Clé invalide.','amber');
+  const kt=k?k.trim():'';if(kt&&(kt.startsWith('AIza')||kt.startsWith('sk-ant-'))){APIKEY=kt;try{localStorage.setItem('im_key',APIKEY);}catch(e){}notif('Clé API mise à jour.');}else if(k)notif('Clé invalide — doit commencer par AIzaSy... ou sk-ant-...','amber');
 }
 
 // === ADMIN ===
@@ -1576,7 +1645,7 @@ function renderAdmin(){
   document.getElementById('adm-e').textContent=Object.keys(calEvents).length;
   document.getElementById('adm-user').textContent=currentUser.email;
   document.getElementById('adm-role').textContent=currentUser.role;
-  document.getElementById('adm-key').textContent=APIKEY?APIKEY.slice(0,16)+'...':'Non configurée';
+  document.getElementById('adm-key').textContent=APIKEY?(isGeminiKey(APIKEY)?'Gemini — '+APIKEY.slice(0,12)+'...':'Claude — '+APIKEY.slice(0,12)+'...'):'Non configurée';
   // Render users list
   const users=getUsers();
   const list=document.getElementById('adm-users-list');
@@ -2407,6 +2476,12 @@ function canAccess(page){
 function initApp(){
   updateStats();
   renderDashboard();
+  // Update AI provider badges (multiple pages)
+  const providerLabel=APIKEY?(isGeminiKey(APIKEY)?'Gemini IA':'Claude IA'):'Clé IA non configurée';
+  document.querySelectorAll('.ai-badge').forEach(function(b){b.textContent=providerLabel;});
+  // Show API key button only for admin
+  const keyBtn=document.getElementById('btn-api-key');
+  if(keyBtn) keyBtn.style.display=(currentUser.role==='admin'?'flex':'none');
   const role=currentUser.role||'agent';
   const isAdmin=role==='admin';
   const isGerant=role==='gerant'||isAdmin;
@@ -2450,7 +2525,7 @@ function resetDocs(){
     const sess=JSON.parse(localStorage.getItem('im_session')||'null');
     if(sess&&sess.email&&(Date.now()-sess.ts)<30*24*60*60*1000){
       currentUser={email:sess.email,role:sess.role||'agent',nom:sess.nom||sess.email};
-      try{const k=localStorage.getItem('im_key')||'';if(k.startsWith('sk-ant-'))APIKEY=k;}catch(e){}
+      try{const k=localStorage.getItem('im_key')||'';if(k.startsWith('AIza')||k.startsWith('sk-ant-'))APIKEY=k;}catch(e){}
       document.getElementById('setup-screen').style.display='none';
       document.getElementById('main-app').style.display='flex';
       initApp();
