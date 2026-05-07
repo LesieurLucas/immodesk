@@ -1397,7 +1397,9 @@ function membreForm(m){
     +'</div>'
     +'<div class="form-row">'
     +'<div><label>Mot de passe '+(m.email?'(laisser vide = inchangé)':'*')+'</label>'
-    +'<input id="mb-pwd" type="password" placeholder="motdepasse"></div>'
+    +'<div style="position:relative"><input id="mb-pwd" type="password" placeholder="motdepasse" style="padding-right:38px">'
+    +'<button type="button" id="mb-pwd-eye" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px"><i class="ti ti-eye"></i></button>'
+    +'</div></div>'
     +'<div><label>Rôle</label><select id="mb-role">'
     +roles.map(function(r){return '<option value="'+r+'"'+(m.role===r?' selected':'')+'>'+ROLE_LABELS[r]+'</option>';}).join('')
     +'</select></div>'
@@ -1409,11 +1411,26 @@ function membreForm(m){
 
 function openAddMembre(){
   openModal('Ajouter un membre',membreForm(),'add-membre');
-  setTimeout(function(){document.getElementById('mb-nom')?.focus();},60);
+  setTimeout(function(){
+    document.getElementById('mb-nom')?.focus();
+    attachPwdToggle();
+  },60);
 }
 function openEditMembre(idx){
   openModal('Modifier le membre',membreForm(getEquipe()[idx]),'edit-membre',idx);
-  setTimeout(function(){document.getElementById('mb-nom')?.focus();},60);
+  setTimeout(function(){
+    document.getElementById('mb-nom')?.focus();
+    attachPwdToggle();
+  },60);
+}
+function attachPwdToggle(){
+  const btn=document.getElementById('mb-pwd-eye');
+  const inp=document.getElementById('mb-pwd');
+  if(!btn||!inp)return;
+  btn.onclick=function(){
+    inp.type=inp.type==='password'?'text':'password';
+    btn.innerHTML=inp.type==='password'?'<i class="ti ti-eye"></i>':'<i class="ti ti-eye-off"></i>';
+  };
 }
 function saveMembre(){
   const nom=(document.getElementById('mb-nom').value||'').trim();
