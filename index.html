@@ -305,9 +305,18 @@
       <!-- AGENDA -->
       <div id="page-agenda" class="hidden">
         <div class="card">
-          <div class="card-header"><span class="card-title">Agenda — Mai 2026</span></div>
+          <div class="card-header">
+            <div style="display:flex;align-items:center;gap:10px">
+              <button class="btn btn-sm" onclick="calPrev()"><i class="ti ti-chevron-left"></i></button>
+              <span class="card-title" id="cal-title">Mai 2026</span>
+              <button class="btn btn-sm" onclick="calNext()"><i class="ti ti-chevron-right"></i></button>
+              <button class="btn btn-sm" onclick="calToday()">Aujourd'hui</button>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openAddEvent()"><i class="ti ti-plus"></i> Ajouter</button>
+          </div>
           <div class="cal-grid" id="cal-header"></div>
           <div class="cal-grid" id="cal-grid"></div>
+          <div id="cal-events-list" style="margin-top:1rem"></div>
         </div>
       </div>
 
@@ -352,7 +361,7 @@ function save() {
 
 let {contacts, biens} = load();
 const pipeline = {'Prospection':[{t:'M. Moreau',s:'Loft Oberkampf',p:'580 k€'},{t:'Mme Silva',s:'T2 Bastille',p:'290 k€'}],'Visite':[{t:'Famille Dupont',s:'T3 Montmartre',p:'420 k€'},{t:'Mme Bertrand',s:'Studio Nation',p:'12k/an'}],'Offre':[{t:'Famille Chen',s:'Maison Vincennes',p:'650 k€'}],'Compromis':[{t:'M. Petit',s:'T2 République',p:'345 k€'}],'Acte final':[{t:'Mme Girard',s:'Vincennes',p:'680 k€'}]};
-const calEv = {7:'Visite T3',9:'Compromis Chen',14:'Visite Vincennes',16:'Notaire',21:'Mandat Girard',23:'Visite studio',28:'Relance'};
+// calEv now loaded dynamically in agenda section
 
 // === NAVIGATION ===
 const PAGES=['dashboard','contacts','biens','pipeline','annonces','relances','agenda','docs'];
@@ -404,7 +413,7 @@ function openModal(title,html,mode,idx=null){
 }
 function closeModal(){document.getElementById('modal-backdrop').classList.add('hidden');}
 function closeModalBg(e){if(e.target===document.getElementById('modal-backdrop'))closeModal();}
-function saveModal(){if(mMode?.includes('contact'))saveContact();if(mMode?.includes('bien'))saveBien();}
+function saveModal(){if(mMode?.includes('contact'))saveContact();if(mMode?.includes('bien'))saveBien();if(mMode==='add-event')saveEvent();}
 
 // === CONTACTS ===
 function cForm(c={}) {
@@ -532,11 +541,102 @@ function renderPipeline(){
 }
 
 // === AGENDA ===
+let calYear=2026,calMonth=4; // 0-indexed, 4=Mai
+
+function loadEvents(){try{return JSON.parse(localStorage.getItem('im_events'))||{'2026-5-7':'Visite T3','2026-5-9':'Compromis Chen','2026-5-14':'Visite Vincennes','2026-5-16':'Notaire','2026-5-21':'Mandat Girard','2026-5-23':'Visite studio','2026-5-28':'Relance'};}catch(e){return {};}}
+function saveEvents(){try{localStorage.setItem('im_events',JSON.stringify(calEvents));}catch(e){}}
+let calEvents=loadEvents();
+
+const MOIS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
+function calPrev(){calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderAgenda();}
+function calNext(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderAgenda();}
+function calToday(){const n=new Date();calYear=n.getFullYear();calMonth=n.getMonth();renderAgenda();}
+
 function renderAgenda(){
+  const today=new Date();
+  const isCurrentMonth=today.getFullYear()===calYear&&today.getMonth()===calMonth;
+  document.getElementById('cal-title').textContent=MOIS[calMonth]+' '+calYear;
   document.getElementById('cal-header').innerHTML=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(d=>`<div class="cal-day-name">${d}</div>`).join('');
+  const firstDay=new Date(calYear,calMonth,1).getDay();
+  const offset=(firstDay===0?6:firstDay-1);
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
   let h='';
-  for(let i=1;i<=31;i++){const ev=calEv[i],t=i===7;h+=`<div class="cal-day ${t?'today':ev?'has-event':''}"><span>${i}</span>${ev?`<span class="cal-event-label">${ev}</span>`:''}</div>`;}
+  for(let i=0;i<offset;i++)h+=`<div></div>`;
+  for(let i=1;i<=daysInMonth;i++){
+    const key=calYear+'-'+(calMonth+1)+'-'+i;
+    const ev=calEvents[key];
+    const isToday=isCurrentMonth&&i===today.getDate();
+    h+=`<div class="cal-day ${isToday?'today':ev?'has-event':''}" onclick="onDayClick(${i})">
+      <span>${i}</span>
+      ${ev?`<span class="cal-event-label">${ev}</span>`:''}
+    </div>`;
+  }
   document.getElementById('cal-grid').innerHTML=h;
+  renderEventsList();
+}
+
+function renderEventsList(){
+  const evs=Object.entries(calEvents).filter(([k])=>{const p=k.split('-');return parseInt(p[0])===calYear&&parseInt(p[1])===(calMonth+1);}).sort((a,b)=>parseInt(a[0].split('-')[2])-parseInt(b[0].split('-')[2]));
+  const el=document.getElementById('cal-events-list');
+  if(!evs.length){el.innerHTML='';return;}
+  el.innerHTML=`<div style="border-top:0.5px solid var(--border);padding-top:1rem;margin-top:.5rem">
+    <div style="font-size:12px;font-weight:500;color:var(--text3);margin-bottom:.5rem">ÉVÉNEMENTS DU MOIS</div>
+    ${evs.map(([k,v])=>{const d=k.split('-')[2];return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:var(--surface2);border-radius:var(--radius);margin-bottom:6px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="width:28px;height:28px;background:var(--blue-bg);color:var(--blue-text);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600">${d}</span>
+        <span style="font-size:13px">${v}</span>
+      </div>
+      <button class="btn btn-sm btn-danger" onclick="deleteEvent('${k}')" title="Supprimer"><i class="ti ti-trash"></i></button>
+    </div>`;}).join('')}
+  </div>`;
+}
+
+function onDayClick(day){
+  const key=calYear+'-'+(calMonth+1)+'-'+day;
+  if(calEvents[key]){
+    if(confirm('Supprimer l\'événement "'+calEvents[key]+'" ?')){deleteEvent(key);}
+  } else {
+    openAddEventForDay(day);
+  }
+}
+
+function openAddEvent(){openAddEventForDay(new Date().getDate());}
+
+function openAddEventForDay(day){
+  const html=`<div class="form-group">
+    <label>Date</label>
+    <input type="number" id="ev-day" value="${day}" min="1" max="31" style="width:100px">
+    <span style="font-size:12px;color:var(--text3);margin-left:8px">${MOIS[calMonth]} ${calYear}</span>
+  </div>
+  <div class="form-group">
+    <label>Événement *</label>
+    <input id="ev-title" placeholder="Visite T3 Montmartre, Notaire..." autofocus>
+  </div>
+  <div class="form-group">
+    <label>Type</label>
+    <select id="ev-type">
+      <option>Visite</option><option>Compromis</option><option>Acte notarié</option><option>Mandat</option><option>Relance</option><option>Autre</option>
+    </select>
+  </div>`;
+  openModal('Ajouter un événement',html,'add-event');
+}
+
+function saveEvent(){
+  const day=parseInt(document.getElementById('ev-day').value);
+  const title=document.getElementById('ev-title').value.trim();
+  const type=document.getElementById('ev-type').value;
+  if(!title){alert('Titre requis');return;}
+  const key=calYear+'-'+(calMonth+1)+'-'+day;
+  calEvents[key]=(type!=='Autre'?type+' — ':'')+title;
+  saveEvents();renderAgenda();closeModal();
+  notif('Événement ajouté.');
+}
+
+function deleteEvent(key){
+  delete calEvents[key];
+  saveEvents();renderAgenda();
+  notif('Événement supprimé.','amber');
 }
 
 // === CSV ===
