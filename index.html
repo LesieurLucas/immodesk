@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#185FA5">
   <title>ImmoDesk — CRM Immobilier</title>
   <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23185FA5'/%3E%3Cpath d='M16 7L6 15v1h2v9h6v-6h4v6h6V16h2v-1L16 7z' fill='white'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
   <style>
     :root{--bg:#f5f5f3;--surface:#fff;--surface2:#f1efe8;--border:rgba(0,0,0,0.1);--border2:rgba(0,0,0,0.18);--text:#1a1a18;--text2:#5f5e5a;--text3:#888780;--blue:#185FA5;--blue-bg:#E6F1FB;--blue-text:#0C447C;--green:#1D9E75;--green-bg:#E1F5EE;--green-text:#085041;--amber:#BA7517;--amber-bg:#FAEEDA;--amber-text:#633806;--red:#A32D2D;--red-bg:#FCEBEB;--red-text:#791F1F;--purple:#534AB7;--purple-bg:#EEEDFE;--purple-text:#3C3489;--radius:8px;--radius-lg:12px}
@@ -24,11 +25,11 @@
     .nav-item i{font-size:18px}
     .hamburger{display:none;background:none;border:none;cursor:pointer;padding:8px;color:var(--text);font-size:22px}
     .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:99}
-    .main{flex:1;overflow-y:auto;display:flex;flex-direction:column;min-width:0}
+    .main{flex:1;overflow-y:auto;display:block;min-width:0}
     .topbar{background:var(--surface);border-bottom:0.5px solid var(--border);padding:.75rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:8px;position:sticky;top:0;z-index:50}
     .page-title{font-size:15px;font-weight:500}
     .topbar-actions{display:flex;gap:8px;flex-shrink:0}
-    .content{padding:1.25rem;flex:1}
+    .content{padding:1.25rem;flex:1;align-self:flex-start;width:100%}
     .btn{padding:7px 14px;border-radius:var(--radius);border:0.5px solid var(--border2);background:transparent;cursor:pointer;font-size:13px;color:var(--text);display:inline-flex;align-items:center;gap:6px;transition:background .12s;white-space:nowrap}
     .btn:hover{background:var(--surface2)}
     .btn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}
@@ -110,32 +111,65 @@
 </head>
 <body>
 
-<!-- SETUP -->
-<div id="setup-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:999;align-items:center;justify-content:center;padding:1rem">
-  <div style="background:var(--surface);border:0.5px solid var(--border);border-radius:16px;padding:2rem;max-width:420px;width:100%">
-    <div style="text-align:center;margin-bottom:1.5rem">
-      <div style="font-size:32px;margin-bottom:.5rem">🏠</div>
-      <div style="font-size:20px;font-weight:600;color:var(--blue)">ImmoDesk</div>
-      <div style="font-size:13px;color:var(--text2);margin-top:4px">CRM Immobilier avec IA</div>
+<!-- LOGIN -->
+<div id="setup-screen" style="display:none;position:fixed;inset:0;z-index:999;align-items:center;justify-content:center;padding:1rem;background:linear-gradient(135deg,#0f3460 0%,#185FA5 60%,#1a8fe3 100%)">
+  <div style="background:var(--surface);border-radius:20px;padding:2.5rem;max-width:400px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.25)">
+
+    <!-- Logo -->
+    <div style="text-align:center;margin-bottom:2rem">
+      <div style="width:60px;height:60px;background:#185FA5;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto .75rem">
+        <svg viewBox="0 0 32 32" width="34" height="34"><path d="M16 4L3 14v1h3v13h7v-7h6v7h7V15h3v-1L16 4z" fill="white"/></svg>
+      </div>
+      <div style="font-size:22px;font-weight:700;color:var(--text)">ImmoDesk</div>
+      <div style="font-size:13px;color:var(--text3);margin-top:3px">CRM Immobilier</div>
     </div>
-    <div style="background:var(--surface2);border-radius:10px;padding:1rem;margin-bottom:1.25rem;font-size:13px;color:var(--text2);line-height:1.6">
-      Pour activer l'IA, entrez votre clé API Anthropic.<br><br>
-      <a href="https://console.anthropic.com" target="_blank" style="color:var(--blue)">→ Obtenir une clé sur console.anthropic.com</a>
+
+    <!-- Login error -->
+    <div id="login-error" style="background:#FCEBEB;color:#791F1F;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:1rem;display:none">
+      <i class="ti ti-alert-circle" style="vertical-align:-2px;margin-right:6px"></i><span id="login-error-msg"></span>
     </div>
-    <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">Clé API Anthropic</label>
-    <div style="position:relative;margin-bottom:8px">
-      <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." style="padding-right:40px;font-family:monospace;font-size:12px" oninput="checkKey()">
-      <button onclick="toggleKeyVis()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px" id="eye-btn"><i class="ti ti-eye"></i></button>
+
+    <!-- Email -->
+    <div style="margin-bottom:12px">
+      <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Adresse email</label>
+      <input type="email" id="login-email" placeholder="agent@agence.fr" onkeydown="if(event.key==='Enter')document.getElementById('login-pwd').focus()">
     </div>
-    <div id="key-error" style="font-size:12px;color:#A32D2D;margin-bottom:8px;display:none">Clé invalide — doit commencer par "sk-ant-"</div>
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:1.25rem">
-      <input type="checkbox" id="remember-key" style="width:auto">
-      <label for="remember-key" style="font-size:12px;color:var(--text2);cursor:pointer">Mémoriser sur cet appareil</label>
+
+    <!-- Password -->
+    <div style="margin-bottom:6px">
+      <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Mot de passe</label>
+      <div style="position:relative">
+        <input type="password" id="login-pwd" placeholder="••••••••" style="padding-right:40px" onkeydown="if(event.key==='Enter')doLogin()">
+        <button onclick="toggleLoginPwd()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px" id="login-eye"><i class="ti ti-eye"></i></button>
+      </div>
     </div>
-    <button class="btn btn-primary" style="width:100%;justify-content:center" id="enter-btn" onclick="enterApp()" disabled><i class="ti ti-arrow-right"></i> Accéder</button>
-    <div style="margin-top:1rem;text-align:center">
-      <button onclick="enterAppNoKey()" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text3);text-decoration:underline">Continuer sans IA (démo)</button>
+
+    <!-- Remember -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:1.5rem;margin-top:10px">
+      <input type="checkbox" id="login-remember" style="width:auto" checked>
+      <label for="login-remember" style="font-size:12px;color:var(--text2);cursor:pointer">Rester connecté</label>
     </div>
+
+    <!-- Submit -->
+    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:10px;font-size:14px" onclick="doLogin()">
+      <i class="ti ti-login"></i> Se connecter
+    </button>
+
+    <!-- API key section (collapsed) -->
+    <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:0.5px solid var(--border)">
+      <button onclick="toggleApiSection()" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text3);display:flex;align-items:center;gap:4px;width:100%">
+        <i class="ti ti-key" style="font-size:14px"></i> Configurer la clé IA (optionnel)
+        <i class="ti ti-chevron-down" id="api-chevron" style="font-size:14px;margin-left:auto;transition:transform .2s"></i>
+      </button>
+      <div id="api-section" style="display:none;margin-top:.75rem">
+        <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Clé API Anthropic</label>
+        <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." style="font-family:monospace;font-size:12px;margin-bottom:8px">
+        <div style="font-size:11px;color:var(--text3)">
+          <a href="https://console.anthropic.com" target="_blank" style="color:var(--blue)">→ Obtenir une clé gratuite</a>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -165,14 +199,19 @@
     <div class="nav-section">Principal</div>
     <div class="nav-item active" onclick="showPage('dashboard',this)"><i class="ti ti-layout-dashboard"></i> Tableau de bord</div>
     <div class="nav-item" onclick="showPage('contacts',this)"><i class="ti ti-users"></i> Contacts</div>
-    <div class="nav-item" onclick="showPage('biens',this)"><i class="ti ti-home"></i> Biens</div>
-    <div class="nav-item" onclick="showPage('pipeline',this)"><i class="ti ti-chart-arrows"></i> Pipeline</div>
-    <div class="nav-section">IA</div>
-    <div class="nav-item" onclick="showPage('annonces',this)"><i class="ti ti-sparkles"></i> Rédiger annonce</div>
-    <div class="nav-item" onclick="showPage('relances',this)"><i class="ti ti-mail-forward"></i> Relances auto</div>
+    <div class="nav-item nav-agent nav-gerant" style="display:none" onclick="showPage('biens',this)"><i class="ti ti-home"></i> Biens</div>
+    <div class="nav-item nav-agent nav-gerant" style="display:none" onclick="showPage('pipeline',this)"><i class="ti ti-chart-arrows"></i> Pipeline</div>
+    <div class="nav-section nav-agent nav-gerant" style="display:none">IA</div>
+    <div class="nav-item nav-agent nav-gerant" style="display:none" onclick="showPage('annonces',this)"><i class="ti ti-sparkles"></i> Rédiger annonce</div>
+    <div class="nav-item nav-agent nav-gerant" style="display:none" onclick="showPage('relances',this)"><i class="ti ti-mail-forward"></i> Relances auto</div>
     <div class="nav-section">Agence</div>
     <div class="nav-item" onclick="showPage('agenda',this)"><i class="ti ti-calendar"></i> Agenda</div>
     <div class="nav-item" onclick="showPage('docs',this)"><i class="ti ti-file-text"></i> Documents</div>
+    <div class="nav-item nav-gerant" style="display:none" onclick="showPage('equipe',this)"><i class="ti ti-users-group"></i> Équipe</div>
+    <div class="nav-item" id="nav-admin" style="display:none" onclick="showPage('admin',this)"><i class="ti ti-shield"></i> Admin</div>
+    <div style="flex:1"></div>
+    <div id="sidebar-user" style="padding:10px 1rem;border-top:0.5px solid var(--border)"></div>
+    <div class="nav-item" onclick="doLogout()" style="color:var(--red);margin-bottom:.5rem"><i class="ti ti-logout"></i> Déconnexion</div>
   </div>
 
   <div class="main">
@@ -185,6 +224,7 @@
         <button class="btn btn-hide" onclick="openAddContact()"><i class="ti ti-user-plus"></i> Contact</button>
         <button class="btn btn-primary" onclick="openAddBien()"><i class="ti ti-home-plus"></i> Bien</button>
         <button class="btn" onclick="showKeySettings()" title="Clé API" style="padding:7px 10px"><i class="ti ti-key"></i></button>
+        <div id="admin-badge" style="display:none;padding:4px 10px;background:#FCEBEB;color:#791F1F;border-radius:var(--radius);font-size:11px;font-weight:600;cursor:pointer" onclick="showPage('admin',this)" title="Panneau admin"><i class="ti ti-shield" style="font-size:13px;vertical-align:-2px"></i> Admin</div>
       </div>
     </div>
 
@@ -197,7 +237,7 @@
           <div class="stat-card"><div class="stat-label">Biens gérés</div><div class="stat-value" id="stat-biens">0</div><div class="stat-delta" id="stat-biens-sub"></div></div>
           <div class="stat-card"><div class="stat-label">Contacts</div><div class="stat-value" id="stat-contacts">0</div><div class="stat-delta" id="stat-contacts-sub"></div></div>
           <div class="stat-card"><div class="stat-label">Transactions</div><div class="stat-value">6</div><div class="stat-delta">2 compromis signés</div></div>
-          <div class="stat-card"><div class="stat-label">CA estimé</div><div class="stat-value">38 k€</div><div class="stat-delta">Objectif : 50 k€</div></div>
+          <div class="stat-card stat-gerant" id="stat-ca-card" style="display:none"><div class="stat-label">CA estimé</div><div class="stat-value">38 k€</div><div class="stat-delta">Objectif : 50 k€</div></div>
         </div>
         <div class="two-col">
           <div class="card">
@@ -354,6 +394,57 @@
       </div>
 
     </div>
+
+      <!-- EQUIPE -->
+      <div id="page-equipe" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Équipe (<span id="equipe-count">0</span>)</span>
+            <button class="btn btn-primary btn-sm" onclick="openAddMembre()"><i class="ti ti-user-plus"></i> Ajouter un membre</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Membre</th><th>Email</th><th>Rôle</th><th>Statut</th><th>Actions</th></tr></thead>
+              <tbody id="equipe-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADMIN -->
+      <div id="page-admin" class="hidden">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Panneau administrateur</span><span class="badge badge-red">Admin only</span></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem">
+            <div style="background:var(--surface2);border-radius:var(--radius);padding:1rem">
+              <div style="font-size:11px;color:var(--text3);margin-bottom:.5rem">DONNÉES</div>
+              <div style="font-size:13px;margin-bottom:8px">Contacts : <b id="adm-c">0</b></div>
+              <div style="font-size:13px;margin-bottom:8px">Biens : <b id="adm-b">0</b></div>
+              <div style="font-size:13px;margin-bottom:8px">Documents : <b id="adm-d">0</b></div>
+              <div style="font-size:13px">Événements : <b id="adm-e">0</b></div>
+            </div>
+            <div style="background:var(--surface2);border-radius:var(--radius);padding:1rem">
+              <div style="font-size:11px;color:var(--text3);margin-bottom:.5rem">SESSION</div>
+              <div style="font-size:13px;margin-bottom:8px">Connecté : <b id="adm-user">—</b></div>
+              <div style="font-size:13px;margin-bottom:8px">Rôle : <b id="adm-role">—</b></div>
+              <div style="font-size:13px">Clé IA : <b id="adm-key">—</b></div>
+            </div>
+          </div>
+          <div style="font-size:12px;font-weight:500;color:var(--text3);margin-bottom:.75rem">GESTION DES UTILISATEURS</div>
+          <div id="adm-users-list" style="margin-bottom:1rem"></div>
+          <button class="btn btn-primary btn-sm" onclick="openAddUser()"><i class="ti ti-user-plus"></i> Ajouter un utilisateur</button>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Actions de maintenance</span></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-sm" onclick="exportAllData()"><i class="ti ti-download"></i> Exporter toutes les données</button>
+            <button class="btn btn-sm btn-danger" onclick="if(confirm('Réinitialiser les documents ?'))resetDocs()"><i class="ti ti-trash"></i> Réinit. documents</button>
+            <button class="btn btn-sm btn-danger" onclick="if(confirm('Tout réinitialiser ? Contacts, biens, documents seront effacés.'))resetAll()"><i class="ti ti-alert-triangle"></i> Reset complet</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
   </div>
 </div>
 
@@ -386,12 +477,16 @@ const pipeline = {'Prospection':[{t:'M. Moreau',s:'Loft Oberkampf',p:'580 k€'}
 // calEv now loaded dynamically in agenda section
 
 // === NAVIGATION ===
-const PAGES=['dashboard','contacts','biens','pipeline','annonces','relances','agenda','docs'];
-const TITLES={dashboard:'Tableau de bord',contacts:'Contacts',biens:'Biens',pipeline:'Pipeline',annonces:'Rédiger une annonce IA',relances:'Relances automatiques',agenda:'Agenda',docs:'Documents'};
+const PAGES=['dashboard','contacts','biens','pipeline','annonces','relances','agenda','docs','equipe','admin'];
+const TITLES={dashboard:'Tableau de bord',contacts:'Contacts',biens:'Biens',pipeline:'Pipeline',annonces:'Rédiger une annonce IA',relances:'Relances automatiques',agenda:'Agenda',docs:'Documents',equipe:'Équipe',admin:'Administration'};
 
 function showPage(id,el) {
+  if(!canAccess(id)){notif('Accès non autorisé pour votre rôle.','red');return;}
   PAGES.forEach(p=>document.getElementById('page-'+p).classList.add('hidden'));
   document.getElementById('page-'+id).classList.remove('hidden');
+  // Scroll to top on page change
+  const main=document.querySelector('.main');
+  if(main)main.scrollTop=0;
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   if(el) el.classList.add('active');
   else document.querySelectorAll('.nav-item').forEach(n=>{if((n.getAttribute('onclick')||'').includes("'"+id+"'"))n.classList.add('active');});
@@ -402,6 +497,8 @@ function showPage(id,el) {
   if(id==='pipeline')renderPipeline();
   if(id==='agenda')renderAgenda();
   if(id==='docs'){renderFolders();renderDocs();}
+  if(id==='admin')renderAdmin();
+  if(id==='equipe')renderEquipe();
   updateStats();
 }
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('open');}
@@ -436,7 +533,7 @@ function openModal(title,html,mode,idx=null){
 }
 function closeModal(){document.getElementById('modal-backdrop').classList.add('hidden');}
 function closeModalBg(e){if(e.target===document.getElementById('modal-backdrop'))closeModal();}
-function saveModal(){if(mMode?.includes('contact'))saveContact();if(mMode?.includes('bien'))saveBien();if(mMode==='add-event'||mMode==='edit-event')saveEvent();if(mMode?.includes('doc'))saveDoc();}
+function saveModal(){if(mMode?.includes('contact'))saveContact();if(mMode?.includes('bien'))saveBien();if(mMode==='add-event'||mMode==='edit-event')saveEvent();if(mMode?.includes('doc'))saveDoc();if(mMode==='add-user')saveUser();if(mMode?.includes('membre'))saveMembre();}
 
 // === CONTACTS ===
 function cForm(c={}) {
@@ -1023,6 +1120,7 @@ function exportCSV(){
 
 // === CLAUDE IA ===
 let APIKEY='';
+let currentUser={email:'',role:'user'};
 async function callClaude(prompt){
   if(!APIKEY)throw new Error('Clé API manquante');
   const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':APIKEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,messages:[{role:'user',content:prompt}]})});
@@ -1046,18 +1144,357 @@ async function genererRelance(){
 }
 function copyText(id){navigator.clipboard?.writeText(document.getElementById(id).textContent).then(()=>notif('Copié !'));}
 
-// === API KEY ===
-function checkKey(){const v=document.getElementById('api-key-input').value.trim(),ok=v.startsWith('sk-ant-')&&v.length>20;document.getElementById('enter-btn').disabled=!ok;document.getElementById('key-error').style.display=(v.length>5&&!ok)?'block':'none';}
-function toggleKeyVis(){const i=document.getElementById('api-key-input'),b=document.getElementById('eye-btn');i.type=i.type==='password'?'text':'password';b.innerHTML=i.type==='password'?'<i class="ti ti-eye"></i>':'<i class="ti ti-eye-off"></i>';}
-function enterApp(){const k=document.getElementById('api-key-input').value.trim();if(!k.startsWith('sk-ant-'))return;APIKEY=k;if(document.getElementById('remember-key').checked){try{localStorage.setItem('im_key',k);}catch(e){}}document.getElementById('setup-screen').style.display='none';document.getElementById('main-app').style.display='flex';initApp();}
-function enterAppNoKey(){document.getElementById('setup-screen').style.display='none';document.getElementById('main-app').style.display='flex';initApp();}
-function showKeySettings(){const cur=APIKEY?APIKEY.slice(0,14)+'...':'Non configurée';const k=prompt('Clé actuelle : '+cur+'\n\nNouvelle clé API (sk-ant-...) :');if(k&&k.trim().startsWith('sk-ant-')){APIKEY=k.trim();try{localStorage.setItem('im_key',APIKEY);}catch(e){}notif('Clé API mise à jour.');}else if(k)notif('Clé invalide.','amber');}
+// === LOGIN & API KEY ===
+// Default credentials (stored in localStorage, changeable)
+function getUsers(){
+  try{
+    const u=localStorage.getItem('im_users');
+    if(u) return JSON.parse(u);
+  }catch(e){}
+  // Default: one user
+  return [
+    {email:'gerant@immodesk.fr',  pwd:'Gerant2026!',   role:'gerant',     nom:'Thomas Dupont',   statut:'actif'},
+    {email:'agent@immodesk.fr',   pwd:'Agent2026!',    role:'agent',      nom:'Marie Lefebvre',  statut:'actif'},
+    {email:'secretaire@immodesk.fr', pwd:'Secr2026!',  role:'secretaire', nom:'Claire Martin',   statut:'actif'},
+    {email:'admin@immodesk.fr',   pwd:'ImmoAdmin2026!',role:'admin',      nom:'Admin Système',   statut:'actif'}
+  ];
+}
+
+function showLoginError(msg){
+  const el=document.getElementById('login-error');
+  document.getElementById('login-error-msg').textContent=msg;
+  el.style.display='block';
+  setTimeout(function(){el.style.display='none';},3500);
+}
+
+function toggleLoginPwd(){
+  const i=document.getElementById('login-pwd'),b=document.getElementById('login-eye');
+  i.type=i.type==='password'?'text':'password';
+  b.innerHTML=i.type==='password'?'<i class="ti ti-eye"></i>':'<i class="ti ti-eye-off"></i>';
+}
+
+function toggleApiSection(){
+  const sec=document.getElementById('api-section');
+  const chev=document.getElementById('api-chevron');
+  const open=sec.style.display==='none';
+  sec.style.display=open?'block':'none';
+  chev.style.transform=open?'rotate(180deg)':'rotate(0deg)';
+}
+
+function doLogin(){
+  const email=(document.getElementById('login-email').value||'').trim().toLowerCase();
+  const pwd=document.getElementById('login-pwd').value||'';
+  if(!email){showLoginError('Veuillez entrer votre email.');return;}
+  if(!pwd){showLoginError('Veuillez entrer votre mot de passe.');return;}
+  const users=getUsers();
+  const match=users.find(function(u){return u.email.toLowerCase()===email&&u.pwd===pwd;});
+  if(!match){showLoginError('Email ou mot de passe incorrect.');return;}
+  // Save session
+  if(document.getElementById('login-remember').checked){
+    try{localStorage.setItem('im_session',JSON.stringify({email:email,role:match.role||'agent',nom:match.nom||email,ts:Date.now()}));}catch(e){}
+  }
+  currentUser={email:email,role:match.role||'agent',nom:match.nom||email};
+  // Save API key if provided
+  const apiKey=(document.getElementById('api-key-input').value||'').trim();
+  if(apiKey.startsWith('sk-ant-')){
+    APIKEY=apiKey;
+    try{localStorage.setItem('im_key',apiKey);}catch(e){}
+  } else {
+    // Load saved key
+    try{const k=localStorage.getItem('im_key')||'';if(k.startsWith('sk-ant-'))APIKEY=k;}catch(e){}
+  }
+  document.getElementById('setup-screen').style.display='none';
+  document.getElementById('main-app').style.display='flex';
+  initApp();
+}
+
+function doLogout(){
+  try{localStorage.removeItem('im_session');}catch(e){}
+  document.getElementById('main-app').style.display='none';
+  document.getElementById('setup-screen').style.display='flex';
+  document.getElementById('login-email').value='';
+  document.getElementById('login-pwd').value='';
+}
+
+function showKeySettings(){
+  const cur=APIKEY?APIKEY.slice(0,14)+'...':'Non configurée';
+  const k=prompt('Clé API IA actuelle : '+cur+'\n\nNouvelle clé (sk-ant-...) :');
+  if(k&&k.trim().startsWith('sk-ant-')){APIKEY=k.trim();try{localStorage.setItem('im_key',APIKEY);}catch(e){}notif('Clé API mise à jour.');}
+  else if(k)notif('Clé invalide.','amber');
+}
+
+// === ADMIN ===
+const PAGES_ALL=['dashboard','contacts','biens','pipeline','annonces','relances','agenda','docs','admin'];
+
+function renderAdmin(){
+  if(currentUser.role!=='admin')return;
+  document.getElementById('adm-c').textContent=contacts.length;
+  document.getElementById('adm-b').textContent=biens.length;
+  document.getElementById('adm-d').textContent=docs.length;
+  document.getElementById('adm-e').textContent=Object.keys(calEvents).length;
+  document.getElementById('adm-user').textContent=currentUser.email;
+  document.getElementById('adm-role').textContent=currentUser.role;
+  document.getElementById('adm-key').textContent=APIKEY?APIKEY.slice(0,16)+'...':'Non configurée';
+  // Render users list
+  const users=getUsers();
+  const list=document.getElementById('adm-users-list');
+  list.innerHTML='';
+  users.forEach(function(u,i){
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-radius:var(--radius);margin-bottom:6px';
+    const info=document.createElement('div');
+    info.innerHTML='<span style="font-size:13px;font-weight:500">'+u.email+'</span>'
+      +' <span class="badge '+(u.role==='admin'?'badge-red':'badge-blue')+'" style="margin-left:8px;font-size:10px">'+( u.role||'user')+'</span>';
+    row.appendChild(info);
+    if(u.email!=='admin@immodesk.fr'){
+      const del=document.createElement('button');
+      del.className='btn btn-sm btn-danger';
+      del.innerHTML='<i class="ti ti-trash"></i>';
+      del.onclick=(function(idx){return function(){
+        if(!confirm('Supprimer cet utilisateur ?'))return;
+        const us=getUsers();us.splice(idx,1);
+        try{localStorage.setItem('im_users',JSON.stringify(us));}catch(e){}
+        renderAdmin();
+      };})(i);
+      row.appendChild(del);
+    }
+    list.appendChild(row);
+  });
+}
+
+function openAddUser(){
+  const html='<div class="form-row">'
+    +'<div><label>Email *</label><input id="new-email" type="email" placeholder="agent@agence.fr"></div>'
+    +'<div><label>Mot de passe *</label><input id="new-pwd" type="password" placeholder="motdepasse"></div>'
+    +'</div>'
+    +'<div class="form-group"><label>Rôle</label>'
+    +'<select id="new-role"><option value="user">Utilisateur</option><option value="admin">Administrateur</option></select></div>';
+  openModal('Ajouter un utilisateur',html,'add-user');
+}
+
+function saveUser(){
+  const email=(document.getElementById('new-email').value||'').trim().toLowerCase();
+  const pwd=document.getElementById('new-pwd').value||'';
+  const role=document.getElementById('new-role').value;
+  if(!email||!pwd){alert('Email et mot de passe requis');return;}
+  const users=getUsers();
+  if(users.find(function(u){return u.email.toLowerCase()===email;})){
+    alert('Cet email existe déjà');return;
+  }
+  users.push({email:email,pwd:pwd,role:role});
+  try{localStorage.setItem('im_users',JSON.stringify(users));}catch(e){}
+  closeModal();renderAdmin();
+  notif('Utilisateur ajouté.');
+}
+
+function exportAllData(){
+  const data={contacts:contacts,biens:biens,docs:docs.map(function(d){return Object.assign({},d,{fichier:d.fichier?'[fichier]':''});}),events:calEvents,exported:new Date().toISOString()};
+  const a=document.createElement('a');
+  a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(data,null,2));
+  a.download='immodesk_backup_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  notif('Export téléchargé.');
+}
+
+function resetAll(){
+  ['im_c','im_b','im_d','im_events'].forEach(function(k){try{localStorage.removeItem(k);}catch(e){}});
+  location.reload();
+}
+
+// === ÉQUIPE ===
+function getEquipe(){
+  try{
+    const e=localStorage.getItem('im_equipe');
+    if(e) return JSON.parse(e);
+  }catch(err){}
+  return getUsers().filter(function(u){return u.role!=='admin';});
+}
+function saveEquipe(eq){try{localStorage.setItem('im_equipe',JSON.stringify(eq));}catch(e){}}
+
+function renderEquipe(){
+  const equipe=getEquipe();
+  const el=document.getElementById('equipe-body');
+  const cnt=document.getElementById('equipe-count');
+  if(!el)return;
+  cnt.textContent=equipe.length;
+  el.innerHTML='';
+  equipe.forEach(function(m,i){
+    const tr=document.createElement('tr');
+    const role=m.role||'agent';
+    const badge=ROLE_BADGES[role]||'badge-blue';
+    const label=ROLE_LABELS[role]||role;
+    const statutBadge=m.statut==='actif'?'badge-green':'badge-amber';
+
+    // Nom
+    const tdNom=document.createElement('td');
+    const av=document.createElement('div');
+    av.style.cssText='display:flex;align-items:center;gap:8px';
+    const initials=(m.nom||m.email||'?').split(' ').map(function(w){return w[0];}).join('').slice(0,2).toUpperCase();
+    av.innerHTML='<span class="avatar">'+initials+'</span><div>'
+      +'<div style="font-weight:500">'+(m.nom||'—')+'</div>'
+      +'</div>';
+    tdNom.appendChild(av);
+    tr.appendChild(tdNom);
+
+    // Email
+    const tdEmail=document.createElement('td');
+    tdEmail.style.color='var(--text2)';
+    tdEmail.textContent=m.email||'—';
+    tr.appendChild(tdEmail);
+
+    // Rôle
+    const tdRole=document.createElement('td');
+    tdRole.innerHTML='<span class="badge '+badge+'">'+label+'</span>';
+    tr.appendChild(tdRole);
+
+    // Statut
+    const tdStatut=document.createElement('td');
+    tdStatut.innerHTML='<span class="badge '+statutBadge+'">'+(m.statut||'actif')+'</span>';
+    tr.appendChild(tdStatut);
+
+    // Actions
+    const tdAct=document.createElement('td');
+    const wrap=document.createElement('div');
+    wrap.className='actions-cell';
+
+    const edit=document.createElement('button');
+    edit.className='btn btn-sm';
+    edit.title='Modifier';
+    edit.innerHTML='<i class="ti ti-edit"></i>';
+    edit.onclick=(function(idx){return function(){openEditMembre(idx);};})(i);
+    wrap.appendChild(edit);
+
+    if(m.email!=='gerant@immodesk.fr'){
+      const del=document.createElement('button');
+      del.className='btn btn-sm btn-danger';
+      del.title='Supprimer';
+      del.innerHTML='<i class="ti ti-trash"></i>';
+      del.onclick=(function(idx){return function(){
+        const eq=getEquipe();
+        if(!confirm('Retirer '+eq[idx].nom+' de l\'équipe ?'))return;
+        eq.splice(idx,1);
+        saveEquipe(eq);
+        // Also remove from users
+        const us=getUsers().filter(function(u){return u.email!==eq[idx]&&u.email!==eq[idx-1]&&true;});
+        renderEquipe();
+        notif('Membre retiré.','amber');
+      };})(i);
+      wrap.appendChild(del);
+    }
+    tdAct.appendChild(wrap);
+    tr.appendChild(tdAct);
+    el.appendChild(tr);
+  });
+}
+
+function membreForm(m){
+  m=m||{};
+  const roles=['gerant','agent','secretaire'];
+  const statuts=['actif','inactif','congé'];
+  return '<div class="form-row">'
+    +'<div><label>Prénom et Nom *</label><input id="mb-nom" value="'+(m.nom||'')+'" placeholder="Marie Dupont"></div>'
+    +'<div><label>Email *</label><input id="mb-email" type="email" value="'+(m.email||'')+'" placeholder="marie@agence.fr"></div>'
+    +'</div>'
+    +'<div class="form-row">'
+    +'<div><label>Mot de passe '+(m.email?'(laisser vide = inchangé)':'*')+'</label>'
+    +'<input id="mb-pwd" type="password" placeholder="motdepasse"></div>'
+    +'<div><label>Rôle</label><select id="mb-role">'
+    +roles.map(function(r){return '<option value="'+r+'"'+(m.role===r?' selected':'')+'>'+ROLE_LABELS[r]+'</option>';}).join('')
+    +'</select></div>'
+    +'</div>'
+    +'<div class="form-group"><label>Statut</label><select id="mb-statut">'
+    +statuts.map(function(s){return '<option value="'+s+'"'+(( m.statut||'actif')===s?' selected':'')+'>'+s.charAt(0).toUpperCase()+s.slice(1)+'</option>';}).join('')
+    +'</select></div>';
+}
+
+function openAddMembre(){
+  openModal('Ajouter un membre',membreForm(),'add-membre');
+  setTimeout(function(){document.getElementById('mb-nom')?.focus();},60);
+}
+function openEditMembre(idx){
+  openModal('Modifier le membre',membreForm(getEquipe()[idx]),'edit-membre',idx);
+  setTimeout(function(){document.getElementById('mb-nom')?.focus();},60);
+}
+function saveMembre(){
+  const nom=(document.getElementById('mb-nom').value||'').trim();
+  const email=(document.getElementById('mb-email').value||'').trim().toLowerCase();
+  const pwd=document.getElementById('mb-pwd').value||'';
+  const role=document.getElementById('mb-role').value;
+  const statut=document.getElementById('mb-statut').value;
+  if(!nom||!email){alert('Nom et email requis');return;}
+  const eq=getEquipe();
+  const users=getUsers();
+  if(mMode==='add-membre'){
+    if(!pwd){alert('Mot de passe requis pour un nouveau membre');return;}
+    if(eq.find(function(m){return m.email===email;})){alert('Cet email existe déjà');return;}
+    const newMembre={nom:nom,email:email,pwd:pwd,role:role,statut:statut};
+    eq.push(newMembre);
+    users.push(newMembre);
+  } else {
+    const m=eq[mIdx];
+    m.nom=nom; m.email=email; m.role=role; m.statut=statut;
+    if(pwd)m.pwd=pwd;
+    const ui=users.findIndex(function(u){return u.email===email;});
+    if(ui>=0){users[ui]=Object.assign({},users[ui],m);}
+    else{users.push(m);}
+  }
+  saveEquipe(eq);
+  try{localStorage.setItem('im_users',JSON.stringify(users));}catch(e){}
+  renderEquipe();closeModal();
+  notif(mMode==='add-membre'?'Membre ajouté.':'Membre mis à jour.');
+}
 
 // === PWA ===
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 
 // === INIT ===
-function initApp(){updateStats();}
+// Permission map: which roles can access which pages
+const ROLE_PAGES={
+  admin:     ['dashboard','contacts','biens','pipeline','annonces','relances','agenda','docs','equipe','admin'],
+  gerant:    ['dashboard','contacts','biens','pipeline','annonces','relances','agenda','docs','equipe'],
+  agent:     ['dashboard','contacts','biens','pipeline','annonces','relances','agenda','docs'],
+  secretaire:['dashboard','contacts','agenda','docs']
+};
+const ROLE_LABELS={gerant:'Gérant',agent:'Agent',secretaire:'Secrétaire',admin:'Admin',user:'Utilisateur'};
+const ROLE_BADGES={gerant:'badge-purple',agent:'badge-blue',secretaire:'badge-green',admin:'badge-red',user:'badge-blue'};
+
+function canAccess(page){
+  const allowed=ROLE_PAGES[currentUser.role]||ROLE_PAGES.agent;
+  return allowed.includes(page);
+}
+
+function initApp(){
+  updateStats();
+  const role=currentUser.role||'agent';
+  const isAdmin=role==='admin';
+  const isGerant=role==='gerant'||isAdmin;
+  const isAgent=role==='agent'||isGerant;
+
+  // Show/hide nav items by role class
+  document.querySelectorAll('.nav-agent').forEach(function(el){el.style.display=isAgent?'flex':'none';});
+  document.querySelectorAll('.nav-gerant').forEach(function(el){el.style.display=isGerant?'flex':'none';});
+  document.querySelectorAll('.nav-section.nav-agent').forEach(function(el){el.style.display=isAgent?'block':'none';});
+  document.querySelectorAll('.nav-section.nav-gerant').forEach(function(el){el.style.display=isGerant?'block':'none';});
+
+  // CA card — gérant only
+  const caCard=document.getElementById('stat-ca-card');
+  if(caCard)caCard.style.display=isGerant?'block':'none';
+
+  // Admin badge & nav
+  const adminBadge=document.getElementById('admin-badge');
+  const navAdmin=document.getElementById('nav-admin');
+  if(adminBadge)adminBadge.style.display=isAdmin?'flex':'none';
+  if(navAdmin)navAdmin.style.display=isAdmin?'flex':'none';
+
+  // Sidebar user info
+  const sidebarUser=document.getElementById('sidebar-user');
+  if(sidebarUser){
+    const badge=ROLE_BADGES[role]||'badge-blue';
+    const label=ROLE_LABELS[role]||role;
+    sidebarUser.innerHTML='<div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:2px">'+(currentUser.nom||currentUser.email)+'</div>'
+      +'<span class="badge '+badge+'" style="font-size:10px">'+label+'</span>';
+  }
+}
 function resetDocs(){
   // Clear corrupted docs from localStorage
   try{localStorage.removeItem('im_d');}catch(e){}
@@ -1067,9 +1504,18 @@ function resetDocs(){
   notif('Documents réinitialisés.');
 }
 (function(){
-  let k='';try{k=localStorage.getItem('im_key')||'';}catch(e){}
-  if(k&&k.startsWith('sk-ant-')){APIKEY=k;document.getElementById('setup-screen').style.display='none';document.getElementById('main-app').style.display='flex';initApp();}
-  else document.getElementById('setup-screen').style.display='flex';
+  try{
+    const sess=JSON.parse(localStorage.getItem('im_session')||'null');
+    if(sess&&sess.email&&(Date.now()-sess.ts)<30*24*60*60*1000){
+      currentUser={email:sess.email,role:sess.role||'agent',nom:sess.nom||sess.email};
+      try{const k=localStorage.getItem('im_key')||'';if(k.startsWith('sk-ant-'))APIKEY=k;}catch(e){}
+      document.getElementById('setup-screen').style.display='none';
+      document.getElementById('main-app').style.display='flex';
+      initApp();
+      return;
+    }
+  }catch(e){}
+  document.getElementById('setup-screen').style.display='flex';
 })();
 </script>
 </body>
