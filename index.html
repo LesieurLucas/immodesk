@@ -328,20 +328,25 @@
 
       <!-- DOCUMENTS -->
       <div id="page-docs" class="hidden">
+        <!-- Dossiers -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap" id="folders-bar"></div>
+          <button class="btn btn-sm" onclick="openAddFolder()"><i class="ti ti-folder-plus"></i> Nouveau dossier</button>
+        </div>
         <div class="card">
           <div class="card-header">
-            <span class="card-title">Documents (<span id="doc-count">0</span>)</span>
-            <div style="display:flex;gap:8px;align-items:center">
+            <span class="card-title" id="docs-title">Documents (<span id="doc-count">0</span>)</span>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
               <button class="btn btn-primary btn-sm" onclick="document.getElementById('file-input').click()">
                 <i class="ti ti-upload"></i> Importer
               </button>
-              <input type="file" id="file-input" style="display:none" multiple accept=".pdf,.doc,.docx,.jpg,.png,.xlsx,.xls" onchange="handleFileImport(event)">
-              <button class="btn btn-sm" onclick="openAddDoc()"><i class="ti ti-plus"></i> Ajouter manuellement</button>
+              <input type="file" id="file-input" style="display:none" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.xlsx,.xls" onchange="handleFileImport(event)">
+              <button class="btn btn-sm" onclick="openAddDoc()"><i class="ti ti-plus"></i> Manuel</button>
             </div>
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Document</th><th>Type</th><th>Bien associé</th><th>Date</th><th>Statut</th><th>Actions</th></tr></thead>
+              <thead><tr><th>Document</th><th>Type</th><th>Dossier</th><th>Bien associé</th><th>Date</th><th>Statut</th><th>Actions</th></tr></thead>
               <tbody id="docs-body"></tbody>
             </table>
           </div>
@@ -357,12 +362,7 @@
 const DC = [{prenom:'Marie',nom:'Dupont',type:'Acheteur',tel:'06 11 22 33 44',email:'',budget:'350 000 €',secteur:'Paris 11e',statut:'Chaud'},{prenom:'Paul',nom:'Laurent',type:'Acheteur',tel:'06 55 66 77 88',email:'',budget:'500 000 €',secteur:'Vincennes',statut:'Tiède'},{prenom:'Claire',nom:'Bertrand',type:'Locataire',tel:'07 12 34 56 78',email:'',budget:'900 €/mois',secteur:'Paris 20e',statut:'Chaud'},{prenom:'Jean',nom:'Chen',type:'Acheteur',tel:'06 98 76 54 32',email:'',budget:'400 000 €',secteur:'Banlieue est',statut:'Client'},{prenom:'Sophie',nom:'Moreau',type:'Vendeur',tel:'06 22 33 44 55',email:'',budget:'—',secteur:'Paris 15e',statut:'Client'}];
 const DB = [{nom:'Appart T3 Montmartre',type:'Appartement',surface:'68',prix:'420 000 €',ville:'Paris 18e',statut:'En vente'},{nom:'Studio Nation',type:'Appartement',surface:'28',prix:'850 €/mois',ville:'Paris 11e',statut:'En location'},{nom:'Maison Vincennes',type:'Maison',surface:'140',prix:'680 000 €',ville:'Vincennes',statut:'Mandat'},{nom:'Villa Boulogne',type:'Maison',surface:'210',prix:'1 200 000 €',ville:'Boulogne',statut:'En vente'},{nom:'T2 République',type:'Appartement',surface:'45',prix:'350 000 €',ville:'Paris 3e',statut:'Compromis'},{nom:'Loft Oberkampf',type:'Appartement',surface:'90',prix:'580 000 €',ville:'Paris 11e',statut:'En vente'}];
 
-const DD = [
-  {nom:'Mandat vente — Girard',type:'Mandat',bien:'Maison Vincennes',date:'02/05/2026',statut:'Signé',fichier:''},
-  {nom:'Compromis — Chen',type:'Compromis',bien:'T3 Montmartre',date:'28/04/2026',statut:'En attente',fichier:''},
-  {nom:'DPE — Villa Boulogne',type:'Diagnostic',bien:'Villa Boulogne',date:'15/01/2025',statut:'À renouveler',fichier:''},
-  {nom:'Bail — Bertrand',type:'Location',bien:'Studio Nation',date:'01/04/2026',statut:'Actif',fichier:''}
-];
+const DD = [];
 
 function load() {
   try {
@@ -401,7 +401,7 @@ function showPage(id,el) {
   if(id==='biens')renderBiens();
   if(id==='pipeline')renderPipeline();
   if(id==='agenda')renderAgenda();
-  if(id==='docs')renderDocs();
+  if(id==='docs'){renderFolders();renderDocs();}
   updateStats();
 }
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('open');}
@@ -720,37 +720,93 @@ function deleteEvent(key){
 
 // === DOCUMENTS ===
 const DOC_STATUTS=['Signé','Actif','En attente','À renouveler','Expiré','Archivé'];
-const DOC_TYPES=['Mandat','Compromis','Acte de vente','Diagnostic','DPE','Bail','Location','Contrat','Autre'];
+const DOC_TYPES=['Mandat','Compromis','Acte de vente','Diagnostic','DPE','Bail','Location','Contrat','Photo','Autre'];
 const DOC_BADGE={'Signé':'badge-green','Actif':'badge-green','En attente':'badge-amber','À renouveler':'badge-red','Expiré':'badge-red','Archivé':'badge-blue'};
-const DOC_ICONS={'Mandat':'ti-file-certificate','Compromis':'ti-file-text','Acte de vente':'ti-file-check','Diagnostic':'ti-file-analytics','DPE':'ti-file-analytics','Bail':'ti-file-text','Location':'ti-home','Contrat':'ti-file-invoice','Autre':'ti-file'};
+const DOC_ICONS={'Mandat':'ti-file-certificate','Compromis':'ti-file-text','Acte de vente':'ti-file-check','Diagnostic':'ti-file-analytics','DPE':'ti-file-analytics','Bail':'ti-file-text','Location':'ti-home','Contrat':'ti-file-invoice','Photo':'ti-photo','Autre':'ti-file'};
 
-function dForm(d) {
-  d=d||{};
+let currentFolder=''; // '' = tous les dossiers
+
+function loadFolders(){try{return JSON.parse(localStorage.getItem('im_folders'))||['Ventes','Locations','Diagnostics','Photos'];}catch(e){return['Ventes','Locations','Diagnostics','Photos'];}}
+function saveFolders(){try{localStorage.setItem('im_folders',JSON.stringify(folders));}catch(e){}}
+let folders=loadFolders();
+
+function renderFolders(){
+  const bar=document.getElementById('folders-bar');
+  // Build using DOM elements — avoids all quote-in-onclick issues
+  bar.innerHTML='';
+  // "Tous" button
+  const allBtn=document.createElement('button');
+  allBtn.className='btn btn-sm'+(currentFolder===''?' btn-primary':'');
+  allBtn.innerHTML='<i class="ti ti-folder" style="font-size:14px"></i> Tous';
+  allBtn.onclick=function(){setFolder('');};
+  bar.appendChild(allBtn);
+  // Folder buttons
+  folders.forEach(function(f){
+    const cnt=docs.filter(function(d){return d.dossier===f;}).length;
+    const wrap=document.createElement('div');
+    wrap.style.cssText='display:flex;align-items:center;gap:2px';
+    const btn=document.createElement('button');
+    btn.className='btn btn-sm'+(currentFolder===f?' btn-primary':'');
+    btn.style.cssText='display:flex;align-items:center;gap:5px';
+    btn.innerHTML='<i class="ti ti-folder" style="font-size:14px"></i> '+f
+      +' <span style="background:rgba(0,0,0,.1);border-radius:100px;padding:0 5px;font-size:10px">'+cnt+'</span>';
+    btn.onclick=function(){setFolder(f);};
+    const del=document.createElement('button');
+    del.className='btn btn-sm';
+    del.title='Supprimer';
+    del.style.cssText='padding:4px 6px;color:var(--text3)';
+    del.innerHTML='<i class="ti ti-x" style="font-size:12px"></i>';
+    del.onclick=function(){deleteFolder(f);};
+    wrap.appendChild(btn);
+    wrap.appendChild(del);
+    bar.appendChild(wrap);
+  });
+}
+
+function setFolder(f){
+  currentFolder=f;
+  renderFolders();
+  renderDocs();
+}
+
+function openAddFolder(){
+  const nom=prompt('Nom du nouveau dossier :');
+  if(!nom||!nom.trim())return;
+  const n=nom.trim();
+  if(folders.includes(n)){notif('Ce dossier existe déjà.','amber');return;}
+  folders.push(n);
+  saveFolders();renderFolders();
+  notif('Dossier "'+n+'" créé.');
+}
+
+function deleteFolder(f){
+  if(!confirm('Supprimer le dossier "'+f+'" ? Les documents seront conservés sans dossier.'))return;
+  folders=folders.filter(x=>x!==f);
+  docs.forEach(d=>{if(d.dossier===f)d.dossier='';});
+  if(currentFolder===f)currentFolder='';
+  saveFolders();save();renderFolders();renderDocs();
+  notif('Dossier supprimé.','amber');
+}
+
+function dForm(d,prefill) {
+  d=d||{}; prefill=prefill||{};
   const today=new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
-  return `<div class="form-group">
-    <label>Nom du document *</label>
-    <input id="d-nom" value="${d.nom||''}" placeholder="Mandat vente — Dupont">
-  </div>
-  <div class="form-row">
-    <div><label>Type</label>
-      <select id="d-type">${DOC_TYPES.map(t=>`<option${d.type===t?' selected':''}>${t}</option>`).join('')}</select>
-    </div>
-    <div><label>Statut</label>
-      <select id="d-statut">${DOC_STATUTS.map(s=>`<option${d.statut===s?' selected':''}>${s}</option>`).join('')}</select>
-    </div>
-  </div>
-  <div class="form-row">
-    <div><label>Bien associé</label>
-      <select id="d-bien">
-        <option value="">— Aucun bien associé —</option>
-        ${biens.map(b=>`<option value="${b.nom}"${(d.bien===b.nom)?' selected':''}>${b.nom}</option>`).join('')}
-        ${d.bien&&d.bien!=='—'&&!biens.find(b=>b.nom===d.bien)?`<option value="${d.bien}" selected>${d.bien}</option>`:''}
-      </select>
-    </div>
-    <div><label>Date</label>
-      <input id="d-date" value="${d.date||today}" placeholder="jj/mm/aaaa">
-    </div>
-  </div>`;
+  const nom=prefill.nom||d.nom||'';
+  const type=prefill.type||d.type||'Autre';
+  const statut=d.statut||'Actif';
+  const dossier=d.dossier||currentFolder||'';
+  const typeOpts=DOC_TYPES.map(t=>'<option'+(type===t?' selected':'')+'>'+t+'</option>').join('');
+  const statutOpts=DOC_STATUTS.map(s=>'<option'+(statut===s?' selected':'')+'>'+s+'</option>').join('');
+  const folderOpts='<option value="">— Sans dossier —</option>'+folders.map(f=>'<option value="'+f+'"'+(dossier===f?' selected':'')+'>'+f+'</option>').join('');
+  const bienOpts='<option value="">— Aucun bien —</option>'+biens.map(b=>'<option value="'+b.nom+'"'+(d.bien===b.nom?' selected':'')+'>'+b.nom+'</option>').join('')+(d.bien&&d.bien!=='—'&&d.bien!==''&&!biens.find(b=>b.nom===d.bien)?'<option value="'+d.bien+'" selected>'+d.bien+'</option>':'');
+  const fichierVal=prefill.fichier||d.fichier||'';
+  return '<input type="hidden" id="d-fichier-data" value="">'
+    +'<div class="form-group"><label>Nom du document *</label><input id="d-nom" value="'+nom+'" placeholder="Mandat vente Dupont"></div>'
+    +'<div class="form-row"><div><label>Type</label><select id="d-type">'+typeOpts+'</select></div>'
+    +'<div><label>Statut</label><select id="d-statut">'+statutOpts+'</select></div></div>'
+    +'<div class="form-row"><div><label>Dossier</label><select id="d-dossier">'+folderOpts+'</select></div>'
+    +'<div><label>Date</label><input id="d-date" value="'+(d.date||today)+'" placeholder="jj/mm/aaaa"></div></div>'
+    +'<div class="form-group"><label>Bien associé</label><select id="d-bien">'+bienOpts+'</select></div>';
 }
 
 function openAddDoc(){
@@ -762,79 +818,188 @@ function openEditDoc(idx){
   setTimeout(()=>document.getElementById('d-nom')?.focus(),60);
 }
 function saveDoc(){
-  const nom=document.getElementById('d-nom').value.trim();
+  const nomEl=document.getElementById('d-nom');
+  if(!nomEl){return;}
+  const nom=nomEl.value.trim();
   if(!nom){alert('Nom du document requis');return;}
+  // Retrieve file data from hidden input
+  const hiddenFile=document.getElementById('d-fichier-data');
+  let fichier='';
+  if(hiddenFile&&hiddenFile.value) fichier=hiddenFile.value;
+  else if(mMode==='edit-doc') fichier=(docs[mIdx]&&docs[mIdx].fichier)||'';
+  const typeEl=document.getElementById('d-type');
+  const statutEl=document.getElementById('d-statut');
+  const dossierEl=document.getElementById('d-dossier');
+  const bienEl=document.getElementById('d-bien');
+  const dateEl=document.getElementById('d-date');
   const d={
-    nom,
-    type:document.getElementById('d-type').value,
-    statut:document.getElementById('d-statut').value,
-    bien:document.getElementById('d-bien').value||'—',
-    date:document.getElementById('d-date').value||'—',
-    fichier:mMode==='edit-doc'?(docs[mIdx]?.fichier||''):''
+    nom:nom,
+    type:typeEl?typeEl.value:'Autre',
+    statut:statutEl?statutEl.value:'Actif',
+    dossier:dossierEl?dossierEl.value:'',
+    bien:bienEl?bienEl.value:'',
+    date:dateEl?dateEl.value:'—',
+    fichier:fichier
   };
-  if(mMode==='add-doc'){docs.push(d);notif('Document ajouté.');}
-  else{docs[mIdx]=d;notif('Document mis à jour.');}
-  save();renderDocs();closeModal();
+  if(mMode==='add-doc'){docs.push(d);}
+  else if(mMode==='edit-doc'&&mIdx!==null){docs[mIdx]=d;}
+  save();
+  closeModal();
+  // Navigate to docs page and refresh
+  showPage('docs', null);
+  notif(mMode==='add-doc'?'Document ajouté.':'Document mis à jour.');
 }
 function deleteDoc(idx){
   const d=docs[idx];
   if(!confirm('Supprimer "'+d.nom+'" ?'))return;
   docs.splice(idx,1);
-  save();renderDocs();
+  save();renderFolders();renderDocs();
   notif('"'+d.nom+'" supprimé.','amber');
 }
 function renderDocs(){
-  document.getElementById('doc-count').textContent=docs.length;
-  document.getElementById('docs-body').innerHTML=docs.map((d,idx)=>{
+  const titleEl=document.getElementById('docs-title');
+  const bodyEl=document.getElementById('docs-body');
+  if(!titleEl||!bodyEl) return; // page not visible yet
+
+  const filtered=currentFolder===''
+    ? docs.slice()
+    : docs.filter(function(d){return (d.dossier||'')===(currentFolder||'');});
+
+  titleEl.textContent=currentFolder
+    ?'Dossier : '+currentFolder+' ('+filtered.length+')'
+    :'Tous les documents ('+docs.length+')';
+
+  if(!filtered.length){
+    bodyEl.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:2rem">'
+      +(currentFolder?'Aucun document dans ce dossier':'Aucun document — importez ou ajoutez manuellement')
+      +'</td></tr>';
+    return;
+  }
+
+  // Build rows as DOM elements
+  bodyEl.innerHTML='';
+  filtered.forEach(function(d){
+    const realIdx=docs.indexOf(d);
     const badge=DOC_BADGE[d.statut]||'badge-blue';
     const icon=DOC_ICONS[d.type]||'ti-file';
-    return `<tr>
-      <td>
-        <div style="display:flex;align-items:center;gap:8px">
-          <i class="ti ${icon}" style="font-size:16px;color:var(--blue);flex-shrink:0"></i>
-          <div>
-            <div style="font-weight:500">${d.nom}</div>
-            ${d.fichier?`<div style="font-size:11px;color:var(--green);margin-top:1px"><i class="ti ti-paperclip" style="font-size:11px"></i> Fichier importé</div>`:''}
-          </div>
-        </div>
-      </td>
-      <td><span class="badge badge-blue" style="font-size:10px">${d.type}</span></td>
-      <td>${d.bien&&d.bien!=='—'?d.bien:'<span style="color:var(--text3)">—</span>'}</td>
-      <td style="white-space:nowrap">${d.date}</td>
-      <td><span class="badge ${badge}">${d.statut}</span></td>
-      <td><div class="actions-cell">
-        ${d.fichier?`<button class="btn btn-sm" onclick="downloadDoc(${idx})" title="Télécharger"><i class="ti ti-download"></i></button>`:''}
-        <button class="btn btn-sm" onclick="openEditDoc(${idx})" title="Modifier"><i class="ti ti-edit"></i></button>
-        <button class="btn btn-sm btn-danger" onclick="deleteDoc(${idx})" title="Supprimer"><i class="ti ti-trash"></i></button>
-      </div></td>
-    </tr>`;
-  }).join('');
+    const isPhoto=d.type==='Photo'||['jpg','jpeg','png','gif'].some(function(e){
+      return (d.nom||'').toLowerCase().endsWith('.'+e);
+    });
+
+    const tr=document.createElement('tr');
+
+    // Col 1: name + icon/thumb
+    const tdName=document.createElement('td');
+    const nameWrap=document.createElement('div');
+    nameWrap.style.cssText='display:flex;align-items:center;gap:8px';
+    if(isPhoto&&d.fichier){
+      const img=document.createElement('img');
+      img.src=d.fichier;
+      img.style.cssText='width:32px;height:32px;object-fit:cover;border-radius:4px;flex-shrink:0';
+      img.alt='';
+      nameWrap.appendChild(img);
+    } else {
+      const ic=document.createElement('i');
+      ic.className='ti '+icon;
+      ic.style.cssText='font-size:16px;color:var(--blue);flex-shrink:0';
+      nameWrap.appendChild(ic);
+    }
+    const nameInfo=document.createElement('div');
+    nameInfo.innerHTML='<div style="font-weight:500">'+d.nom+'</div>'
+      +(d.fichier?'<div style="font-size:11px;color:var(--green);margin-top:1px"><i class="ti ti-paperclip" style="font-size:11px"></i> Fichier joint</div>':'');
+    nameWrap.appendChild(nameInfo);
+    tdName.appendChild(nameWrap);
+    tr.appendChild(tdName);
+
+    // Col 2: type
+    const tdType=document.createElement('td');
+    tdType.innerHTML='<span class="badge badge-blue" style="font-size:10px">'+d.type+'</span>';
+    tr.appendChild(tdType);
+
+    // Col 3: dossier
+    const tdDossier=document.createElement('td');
+    tdDossier.innerHTML=d.dossier
+      ?'<span style="display:inline-flex;align-items:center;gap:4px;font-size:12px"><i class="ti ti-folder" style="font-size:13px;color:var(--amber)"></i>'+d.dossier+'</span>'
+      :'<span style="color:var(--text3)">—</span>';
+    tr.appendChild(tdDossier);
+
+    // Col 4: bien
+    const tdBien=document.createElement('td');
+    tdBien.innerHTML=(d.bien&&d.bien!==''&&d.bien!=='—')
+      ?d.bien
+      :'<span style="color:var(--text3)">—</span>';
+    tr.appendChild(tdBien);
+
+    // Col 5: date
+    const tdDate=document.createElement('td');
+    tdDate.style.whiteSpace='nowrap';
+    tdDate.textContent=d.date||'—';
+    tr.appendChild(tdDate);
+
+    // Col 6: statut
+    const tdStatut=document.createElement('td');
+    tdStatut.innerHTML='<span class="badge '+badge+'">'+d.statut+'</span>';
+    tr.appendChild(tdStatut);
+
+    // Col 7: actions
+    const tdActions=document.createElement('td');
+    const actWrap=document.createElement('div');
+    actWrap.className='actions-cell';
+    if(d.fichier){
+      const dl=document.createElement('button');
+      dl.className='btn btn-sm'; dl.title='Télécharger';
+      dl.innerHTML='<i class="ti ti-download"></i>';
+      dl.onclick=(function(i){return function(){downloadDoc(i);};})(realIdx);
+      actWrap.appendChild(dl);
+    }
+    const ed=document.createElement('button');
+    ed.className='btn btn-sm'; ed.title='Modifier';
+    ed.innerHTML='<i class="ti ti-edit"></i>';
+    ed.onclick=(function(i){return function(){openEditDoc(i);};})(realIdx);
+    actWrap.appendChild(ed);
+    const rm=document.createElement('button');
+    rm.className='btn btn-sm btn-danger'; rm.title='Supprimer';
+    rm.innerHTML='<i class="ti ti-trash"></i>';
+    rm.onclick=(function(i){return function(){deleteDoc(i);};})(realIdx);
+    actWrap.appendChild(rm);
+    tdActions.appendChild(actWrap);
+    tr.appendChild(tdActions);
+
+    bodyEl.appendChild(tr);
+  });
 }
 function handleFileImport(event){
   const files=Array.from(event.target.files);
   if(!files.length)return;
+  let done=0;
   files.forEach(file=>{
     const reader=new FileReader();
     reader.onload=function(e){
       const today=new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
       const ext=file.name.split('.').pop().toLowerCase();
       let type='Autre';
-      if(ext==='pdf'||ext==='docx'||ext==='doc'){
-        const n=file.name.toLowerCase();
-        if(n.includes('mandat'))type='Mandat';
-        else if(n.includes('compromis'))type='Compromis';
-        else if(n.includes('bail'))type='Bail';
-        else if(n.includes('dpe')||n.includes('diagnostic'))type='Diagnostic';
-        else if(n.includes('acte'))type='Acte de vente';
-        else type='Contrat';
-      }
-      docs.push({nom:file.name.replace(/\.[^.]+$/,''),type,statut:'Actif',bien:'—',date:today,fichier:e.target.result});
-      save();renderDocs();
+      const n=file.name.toLowerCase();
+      if(['jpg','jpeg','png','gif'].includes(ext)) type='Photo';
+      else if(n.includes('mandat')) type='Mandat';
+      else if(n.includes('compromis')) type='Compromis';
+      else if(n.includes('bail')) type='Bail';
+      else if(n.includes('dpe')||n.includes('diagnostic')) type='Diagnostic';
+      else if(n.includes('acte')) type='Acte de vente';
+      else if(['pdf','doc','docx'].includes(ext)) type='Contrat';
+      const nomSuggere=file.name.replace(/\.[^.]+$/,'');
+      // Store file data and open edit modal for each file
+      const fileData=e.target.result;
+      openModal('Importer : '+file.name, dForm({nom:nomSuggere,type,dossier:currentFolder,statut:'Actif',date:today}), 'add-doc');
+      setTimeout(function(){
+        const el=document.getElementById('d-fichier-data');
+        if(el) el.value=fileData;
+        document.getElementById('d-nom')?.select();
+      },80);
+      done++;
     };
     reader.readAsDataURL(file);
   });
   event.target.value='';
-  setTimeout(()=>notif(files.length+' document(s) importé(s).'),300);
 }
 function downloadDoc(idx){
   const d=docs[idx];
@@ -893,6 +1058,14 @@ if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(
 
 // === INIT ===
 function initApp(){updateStats();}
+function resetDocs(){
+  // Clear corrupted docs from localStorage
+  try{localStorage.removeItem('im_d');}catch(e){}
+  docs=[];
+  save();
+  if(document.getElementById('docs-body')) {renderFolders();renderDocs();}
+  notif('Documents réinitialisés.');
+}
 (function(){
   let k='';try{k=localStorage.getItem('im_key')||'';}catch(e){}
   if(k&&k.startsWith('sk-ant-')){APIKEY=k;document.getElementById('setup-screen').style.display='none';document.getElementById('main-app').style.display='flex';initApp();}
