@@ -82,19 +82,20 @@
     .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
     .loading{animation:pulse 1.2s infinite;color:var(--text3);font-style:italic}
-    .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-    .cal-day-name{text-align:center;font-size:11px;color:var(--text3);padding:6px 0}
-    .cal-day{border-radius:var(--radius);padding:6px 4px;text-align:center;font-size:12px;cursor:pointer;min-height:42px;display:flex;flex-direction:column;align-items:center;gap:2px;transition:background .1s}
-    .cal-day:hover{background:var(--surface2)}
-    .cal-day.today{background:var(--blue);color:#fff}
-    .cal-day.has-event{background:var(--blue-bg);color:var(--blue-text)}
-    .cal-day.ev-visite{background:#E6F1FB;color:#0C447C}
-    .cal-day.ev-compromis{background:#FAEEDA;color:#633806}
-    .cal-day.ev-acte{background:#EEEDFE;color:#3C3489}
-    .cal-day.ev-mandat{background:#EAF3DE;color:#27500A}
-    .cal-day.ev-relance{background:#FCEBEB;color:#791F1F}
-    .cal-day.ev-autre{background:var(--surface2);color:var(--text2)}
-    .cal-event-label{font-size:9px;line-height:1.2;text-align:center}
+    .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+    .cal-day-name{text-align:center;font-size:11px;color:var(--text3);padding:6px 0;font-weight:500}
+    .cal-day{border-radius:var(--radius);padding:6px 5px;font-size:12px;cursor:pointer;min-height:80px;display:flex;flex-direction:column;align-items:stretch;gap:2px;transition:background .1s;border:0.5px solid transparent}
+    .cal-day:hover{background:var(--surface2);border-color:var(--border)}
+    .cal-day.today .cal-day-num{background:var(--blue);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;margin:0 auto}
+    .cal-day-num{font-size:12px;font-weight:500;text-align:center;margin-bottom:3px;height:22px;display:flex;align-items:center;justify-content:center}
+    .cal-ev-pill{border-radius:4px;padding:2px 5px;font-size:10px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4;text-align:left}
+    .cal-ev-pill.ev-visite{background:#185FA5;color:#fff}
+    .cal-ev-pill.ev-compromis{background:#BA7517;color:#fff}
+    .cal-ev-pill.ev-acte{background:#534AB7;color:#fff}
+    .cal-ev-pill.ev-mandat{background:#1D9E75;color:#fff}
+    .cal-ev-pill.ev-relance{background:#A32D2D;color:#fff}
+    .cal-ev-pill.ev-autre{background:var(--text3);color:#fff}
+    .cal-more{font-size:10px;color:var(--text3);padding:1px 4px;text-align:left}
     .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;display:flex;align-items:center;justify-content:center;padding:1rem}
     .modal{background:var(--surface);border-radius:var(--radius-lg);padding:1.5rem;width:100%;max-width:480px;max-height:90vh;overflow-y:auto}
     .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem}
@@ -200,7 +201,6 @@
     <div class="nav-item active" onclick="showPage('dashboard',this)"><i class="ti ti-layout-dashboard"></i> Tableau de bord</div>
     <div class="nav-item" onclick="showPage('contacts',this)"><i class="ti ti-users"></i> Contacts</div>
     <div class="nav-item nav-agent nav-gerant" style="display:none" onclick="showPage('biens',this)"><i class="ti ti-home"></i> Biens</div>
-    <div class="nav-item nav-agent nav-gerant" style="display:none" onclick="showPage('pipeline',this)"><i class="ti ti-chart-arrows"></i> Pipeline</div>
     <div class="nav-section nav-agent nav-gerant" style="display:none">IA</div>
     <div class="nav-item nav-agent nav-gerant" style="display:none" onclick="showPage('annonces',this)"><i class="ti ti-sparkles"></i> Rédiger annonce</div>
     <div class="nav-item nav-agent nav-gerant" style="display:none" onclick="showPage('relances',this)"><i class="ti ti-mail-forward"></i> Relances auto</div>
@@ -208,8 +208,10 @@
     <div class="nav-item" onclick="showPage('agenda',this)"><i class="ti ti-calendar"></i> Agenda</div>
     <div class="nav-item" onclick="showPage('docs',this)"><i class="ti ti-file-text"></i> Documents</div>
     <div class="nav-item nav-gerant" style="display:none" onclick="showPage('equipe',this)"><i class="ti ti-users-group"></i> Équipe</div>
+    <div class="nav-item nav-gerant" style="display:none" onclick="showPage('finance',this)"><i class="ti ti-chart-bar"></i> Finances</div>
     <div class="nav-item" id="nav-admin" style="display:none" onclick="showPage('admin',this)"><i class="ti ti-shield"></i> Admin</div>
     <div style="flex:1"></div>
+    <div class="nav-item nav-gerant" style="display:none;border-top:0.5px solid var(--border);color:var(--text3)" onclick="showPage('parametres',this)"><i class="ti ti-settings"></i> Paramètres</div>
     <div id="sidebar-user" style="padding:10px 1rem;border-top:0.5px solid var(--border)"></div>
     <div class="nav-item" onclick="doLogout()" style="color:var(--red);margin-bottom:.5rem"><i class="ti ti-logout"></i> Déconnexion</div>
   </div>
@@ -237,21 +239,16 @@
           <div class="stat-card"><div class="stat-label">Biens gérés</div><div class="stat-value" id="stat-biens">0</div><div class="stat-delta" id="stat-biens-sub"></div></div>
           <div class="stat-card"><div class="stat-label">Contacts</div><div class="stat-value" id="stat-contacts">0</div><div class="stat-delta" id="stat-contacts-sub"></div></div>
           <div class="stat-card"><div class="stat-label">Transactions</div><div class="stat-value">6</div><div class="stat-delta">2 compromis signés</div></div>
-          <div class="stat-card stat-gerant" id="stat-ca-card" style="display:none"><div class="stat-label">CA estimé</div><div class="stat-value">38 k€</div><div class="stat-delta">Objectif : 50 k€</div></div>
+          <div class="stat-card stat-gerant" id="stat-ca-card" style="display:none"><div class="stat-label">CA annuel</div><div class="stat-value" id="dash-ca-annee">—</div><div class="stat-delta" id="dash-ca-pct"></div></div>
         </div>
         <div class="two-col">
           <div class="card">
-            <div class="card-header"><span class="card-title">Activité récente</span><span class="badge badge-blue">Aujourd'hui</span></div>
-            <div class="activity-item"><span class="dot" style="background:var(--green);margin-top:4px"></span><div><b>Visite confirmée</b> — T3 Montmartre · Famille Dupont · 14h00</div></div>
-            <div class="activity-item"><span class="dot" style="background:#EF9F27;margin-top:4px"></span><div><b>Relance en attente</b> — M. Laurent sans réponse depuis 5 jours</div></div>
-            <div class="activity-item"><span class="dot" style="background:var(--green);margin-top:4px"></span><div><b>Mandat signé</b> — Maison Vincennes 680 000 € · Mme Girard</div></div>
-            <div class="activity-item"><span class="dot" style="background:#E24B4A;margin-top:4px"></span><div><b>Document manquant</b> — DPE à renouveler · Villa Boulogne</div></div>
+            <div class="card-header"><span class="card-title">Activité récente</span><span id="dash-activity-badge" class="badge badge-blue"></span></div>
+            <div id="dash-activity"></div>
           </div>
           <div class="card">
             <div class="card-header"><span class="card-title">Visites à venir</span></div>
-            <div class="activity-item"><span class="dot" style="background:var(--blue);margin-top:4px"></span><div><b>14h00</b> — T3 Montmartre<br><span style="color:var(--text3);font-size:12px">Famille Dupont</span></div></div>
-            <div class="activity-item"><span class="dot" style="background:var(--blue);margin-top:4px"></span><div><b>16h30</b> — Studio Nation<br><span style="color:var(--text3);font-size:12px">Mme Bertrand</span></div></div>
-            <div class="activity-item"><span class="dot" style="background:var(--blue);margin-top:4px"></span><div><b>Demain 10h</b> — Maison Vincennes<br><span style="color:var(--text3);font-size:12px">M. et Mme Chen</span></div></div>
+            <div id="dash-visites"></div>
           </div>
         </div>
       </div>
@@ -395,6 +392,127 @@
 
     </div>
 
+      <!-- FINANCE -->
+      <div id="page-finance" class="hidden">
+
+        <!-- KPI row -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem">
+          <!-- Mois -->
+          <div style="background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:1rem">
+            <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem">Ce mois</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+              <div><div style="font-size:11px;color:var(--text3)">CA</div><div style="font-size:18px;font-weight:600" id="fin-ca-mois">0 €</div><div style="font-size:11px;color:var(--text3)" id="fin-ca-mois-sub"></div></div>
+              <div><div style="font-size:11px;color:var(--text3)">Ventes</div><div style="font-size:18px;font-weight:600;color:var(--blue)" id="fin-ventes-mois">0 €</div><div style="font-size:11px;color:var(--text3)" id="fin-ventes-mois-sub"></div></div>
+              <div><div style="font-size:11px;color:var(--text3)">Locations</div><div style="font-size:18px;font-weight:600;color:var(--purple)" id="fin-loc-mois">0 €</div><div style="font-size:11px;color:var(--text3)" id="fin-loc-mois-sub"></div></div>
+            </div>
+          </div>
+          <!-- Année -->
+          <div style="background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:1rem">
+            <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem">Cette année</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+              <div><div style="font-size:11px;color:var(--text3)">CA</div><div style="font-size:18px;font-weight:600" id="fin-ca-annee">0 €</div><div style="font-size:11px;color:var(--text3)" id="fin-ca-annee-sub"></div></div>
+              <div><div style="font-size:11px;color:var(--text3)">Ventes</div><div style="font-size:18px;font-weight:600;color:var(--blue)" id="fin-ventes-annee">0 €</div><div style="font-size:11px;color:var(--text3)" id="fin-ventes-annee-sub"></div></div>
+              <div><div style="font-size:11px;color:var(--text3)">Locations / an</div><div style="font-size:18px;font-weight:600;color:var(--purple)" id="fin-loc-annee">0 €</div><div style="font-size:11px;color:var(--text3)" id="fin-loc-annee-sub"></div></div>
+            </div>
+          </div>
+        </div>
+        <!-- Objectif -->
+        <div style="background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:.9rem;margin-bottom:1rem;display:flex;align-items:center;gap:1rem">
+          <div style="flex:1">
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px">
+              <span style="color:var(--text3)">Progression objectif annuel</span>
+              <span id="fin-objectif-label" style="font-weight:500">0 / 50 000 €</span>
+            </div>
+            <div style="height:8px;background:var(--surface2);border-radius:4px">
+              <div id="fin-progress-bar" style="height:8px;background:var(--blue);border-radius:4px;width:0%;transition:width .5s"></div>
+            </div>
+          </div>
+          <div id="fin-pct-badge" style="font-size:14px;font-weight:600;color:var(--blue);min-width:40px;text-align:right">0%</div>
+        </div>
+
+        <!-- Tabs -->
+        <div style="display:flex;gap:8px;margin-bottom:1rem">
+          <button id="fin-btn-ventes" class="btn btn-primary" onclick="finSwitchTab('ventes',this)" style="flex:1;justify-content:center;font-size:14px;padding:10px">
+            <i class="ti ti-home-move"></i> Ventes
+          </button>
+          <button id="fin-btn-locations" class="btn" onclick="finSwitchTab('locations',this)" style="flex:1;justify-content:center;font-size:14px;padding:10px">
+            <i class="ti ti-key"></i> Locations
+          </button>
+        </div>
+
+        <!-- Ventes -->
+        <div id="fin-tab-ventes">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Commissions sur ventes (<span id="fin-ventes-nb">0</span>)</span>
+              <button class="btn btn-primary btn-sm" onclick="openAddCommission('vente')"><i class="ti ti-plus"></i> Ajouter</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Bien / Transaction</th><th>Agent</th><th>Prix vente</th><th>Barème</th><th>Commission</th><th>Date</th><th>Statut</th><th>Actions</th></tr></thead>
+                <tbody id="fin-ventes-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Locations -->
+        <div id="fin-tab-locations" class="hidden">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Commissions sur locations (<span id="fin-loc-nb">0</span>)</span>
+              <button class="btn btn-primary btn-sm" onclick="openAddCommission('location')"><i class="ti ti-plus"></i> Ajouter</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Bien / Locataire</th><th>Agent</th><th>Surface</th><th>Loyer</th><th>Commission</th><th>Date</th><th>Statut</th><th>Actions</th></tr></thead>
+                <tbody id="fin-loc-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- PARAMETRES -->
+      <div id="page-parametres" class="hidden">
+
+        <!-- Barème Ventes -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Barème honoraires — Ventes</span>
+            <button class="btn btn-sm" onclick="addTranche('vente')"><i class="ti ti-plus"></i> Ajouter une tranche</button>
+          </div>
+          <p style="font-size:13px;color:var(--text2);margin-bottom:1rem">Définissez vos tranches de prix et le taux d'honoraires associé. Le taux de la tranche correspondante est appliqué automatiquement.</p>
+          <div id="param-tranches-vente" style="margin-bottom:1rem"></div>
+          <div id="param-vente-preview" style="font-size:12px;color:var(--text2);background:var(--surface2);border-radius:var(--radius);padding:10px;margin-bottom:1rem"></div>
+          <button class="btn btn-primary btn-sm" onclick="saveParamVentes()"><i class="ti ti-check"></i> Enregistrer le barème ventes</button>
+        </div>
+
+        <!-- Barème Locations -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Barème honoraires — Locations</span>
+            <button class="btn btn-sm" onclick="addTranche('location')"><i class="ti ti-plus"></i> Ajouter une tranche</button>
+          </div>
+          <p style="font-size:13px;color:var(--text2);margin-bottom:1rem">Définissez vos tranches de surface et le tarif d'honoraires en €/m².</p>
+          <div id="param-tranches-loc" style="margin-bottom:1rem"></div>
+          <div id="param-loc-preview" style="font-size:12px;color:var(--text2);background:var(--surface2);border-radius:var(--radius);padding:10px;margin-bottom:1rem"></div>
+          <button class="btn btn-primary btn-sm" onclick="saveParamLocs()"><i class="ti ti-check"></i> Enregistrer le barème locations</button>
+        </div>
+
+        <!-- Objectif -->
+        <div class="card">
+          <div class="card-header"><span class="card-title">Objectif annuel de CA</span></div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <input type="number" id="param-objectif" style="width:180px" placeholder="50000">
+            <span style="font-size:14px">€</span>
+            <button class="btn btn-primary btn-sm" onclick="saveParamObjectif()"><i class="ti ti-check"></i> Enregistrer</button>
+          </div>
+        </div>
+
+      </div>
+
       <!-- EQUIPE -->
       <div id="page-equipe" class="hidden">
         <div class="card">
@@ -477,8 +595,8 @@ const pipeline = {'Prospection':[{t:'M. Moreau',s:'Loft Oberkampf',p:'580 k€'}
 // calEv now loaded dynamically in agenda section
 
 // === NAVIGATION ===
-const PAGES=['dashboard','contacts','biens','pipeline','annonces','relances','agenda','docs','equipe','admin'];
-const TITLES={dashboard:'Tableau de bord',contacts:'Contacts',biens:'Biens',pipeline:'Pipeline',annonces:'Rédiger une annonce IA',relances:'Relances automatiques',agenda:'Agenda',docs:'Documents',equipe:'Équipe',admin:'Administration'};
+const PAGES=['dashboard','contacts','biens','annonces','relances','agenda','docs','equipe','finance','parametres','admin'];
+const TITLES={dashboard:'Tableau de bord',contacts:'Contacts',biens:'Biens',annonces:'Rédiger une annonce IA',relances:'Relances automatiques',agenda:'Agenda',docs:'Documents',equipe:'Équipe',finance:'Finances',parametres:'Paramètres',admin:'Administration'};
 
 function showPage(id,el) {
   if(!canAccess(id)){notif('Accès non autorisé pour votre rôle.','red');return;}
@@ -492,24 +610,141 @@ function showPage(id,el) {
   else document.querySelectorAll('.nav-item').forEach(n=>{if((n.getAttribute('onclick')||'').includes("'"+id+"'"))n.classList.add('active');});
   document.getElementById('page-title').textContent=TITLES[id]||id;
   closeSidebar();
+  if(id==='dashboard')renderDashboard();
   if(id==='contacts')renderContacts();
   if(id==='biens')renderBiens();
-  if(id==='pipeline')renderPipeline();
   if(id==='agenda')renderAgenda();
   if(id==='docs'){renderFolders();renderDocs();}
   if(id==='admin')renderAdmin();
   if(id==='equipe')renderEquipe();
+  if(id==='finance')renderFinance();
+  if(id==='parametres')renderParametres();
   updateStats();
 }
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('open');}
 function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('overlay').classList.remove('open');}
 
 // === STATS ===
+function renderDashboard(){
+  renderDashActivity();
+  renderDashVisites();
+}
+
+function renderDashActivity(){
+  const container=document.getElementById('dash-activity');
+  const badge=document.getElementById('dash-activity-badge');
+  if(!container)return;
+
+  const items=[];
+  const today=new Date();
+  const todayStr=today.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
+
+  // 1. Contacts tièdes à relancer
+  const tiedesNom=(contacts||[]).filter(function(c){return c.statut==='Tiède';}).slice(0,2);
+  tiedesNom.forEach(function(c){
+    items.push({color:'#EF9F27',html:'<b>Relance recommandée</b> — '+c.prenom+' '+c.nom+' · statut Tiède'});
+  });
+
+  // 2. Documents à renouveler / en attente
+  (docs||[]).filter(function(d){return d.statut==='À renouveler'||d.statut==='Expiré';}).slice(0,2).forEach(function(d){
+    items.push({color:'#E24B4A',html:'<b>Document '+d.statut.toLowerCase()+'</b> — '+d.nom+(d.bien&&d.bien!=='—'?' · '+d.bien:'')});
+  });
+  (docs||[]).filter(function(d){return d.statut==='En attente';}).slice(0,1).forEach(function(d){
+    items.push({color:'#EF9F27',html:'<b>Document en attente</b> — '+d.nom});
+  });
+
+  // 3. Biens en compromis ou acte final
+  (biens||[]).filter(function(b){return b.statut==='Compromis'||b.statut==='Acte final';}).slice(0,2).forEach(function(b){
+    items.push({color:'var(--green)',html:'<b>'+b.statut+'</b> — '+b.nom+' · '+b.prix});
+  });
+
+  // 4. Visites aujourd'hui (from calEvents)
+  if(typeof calEvents!=='undefined'){
+    const curY=today.getFullYear(), curM=today.getMonth()+1, curD=today.getDate();
+    const todayKey=curY+'-'+curM+'-'+curD;
+    const todayEvs=calEvents[todayKey]||[];
+    todayEvs.forEach(function(ev){
+      const label=ev.title||'';
+      const heure=ev.heure?ev.heure+' ':'';
+      items.push({color:'var(--blue)',html:'<b>Aujourd\'hui</b> — '+heure+label});
+    });
+  }
+
+  // 5. Mandats récents (biens en vente ou location)
+  (biens||[]).filter(function(b){return b.statut==='Mandat';}).slice(0,1).forEach(function(b){
+    items.push({color:'var(--green)',html:'<b>Mandat actif</b> — '+b.nom+' · '+b.prix});
+  });
+
+  if(!items.length){
+    container.innerHTML='<div style="color:var(--text3);font-size:13px;padding:8px 0">Aucune activité récente.</div>';
+    if(badge)badge.textContent='';
+    return;
+  }
+
+  if(badge)badge.textContent=items.length+' alerte'+(items.length>1?'s':'');
+  container.innerHTML=items.map(function(item){
+    return '<div class="activity-item"><span class="dot" style="background:'+item.color+';margin-top:4px;flex-shrink:0"></span><div>'+item.html+'</div></div>';
+  }).join('');
+}
+
+function renderDashVisites(){
+  const container=document.getElementById('dash-visites');
+  if(!container||typeof calEvents==='undefined')return;
+
+  const today=new Date();
+  const visites=[];
+
+  // Scan next 7 days for events of type Visite
+  for(let offset=0;offset<8;offset++){
+    const d=new Date(today);
+    d.setDate(d.getDate()+offset);
+    const key=d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+    const evs=calEvents[key]||[];
+    evs.forEach(function(ev){
+      const type=ev.type||'';
+      const title=ev.title||'';
+      const heure=ev.heure||'';
+      if(type==='Visite'||offset===0){
+        const label=offset===0?'Aujourd\'hui':offset===1?'Demain':d.toLocaleDateString('fr-FR',{weekday:'short',day:'2-digit',month:'short'});
+        visites.push({label:label,heure:heure,title:title,type:type});
+      }
+    });
+  }
+
+  if(!visites.length){
+    container.innerHTML='<div style="color:var(--text3);font-size:13px;padding:8px 0">Aucune visite prévue dans les 7 prochains jours.</div>';
+    return;
+  }
+
+  container.innerHTML=visites.map(function(v){
+    return '<div class="activity-item"><span class="dot" style="background:var(--blue);margin-top:4px;flex-shrink:0"></span>'
+      +'<div><b>'+(v.heure?v.heure+' — ':'')+v.label+'</b> — '+v.title
+      +(v.type&&v.type!=='Autre'?'<br><span style="color:var(--text3);font-size:11px">'+v.type+'</span>':'')
+      +'</div></div>';
+  }).join('');
+}
+
 function updateStats() {
   document.getElementById('stat-contacts').textContent=contacts.length;
   document.getElementById('stat-biens').textContent=biens.length;
   document.getElementById('stat-contacts-sub').textContent=contacts.filter(c=>c.statut==='Chaud').length+' contact(s) chaud(s)';
   document.getElementById('stat-biens-sub').textContent=biens.filter(b=>b.statut==='En vente').length+' en vente';
+  // CA annuel — gérant seulement
+  if(typeof finance!=='undefined'&&typeof finMontant!=='undefined'){
+    const curYear=new Date().getFullYear();
+    function pd(str){if(!str)return null;const p=str.split('/');return p.length===3?new Date(parseInt(p[2]),parseInt(p[1])-1,parseInt(p[0])):null;}
+    function isy(str){const d=pd(str);return d&&d.getFullYear()===curYear;}
+    const ventes=(finance.ventes||[]).filter(function(v){return v.statut!=='Annulée'&&isy(v.date);});
+    const locs=(finance.locations||[]).filter(function(l){return l.statut!=='Annulée'&&isy(l.date);});
+    const total=ventes.reduce(function(s,v){return s+finMontant(v);},0)+locs.reduce(function(s,l){return s+finMontant(l)*12;},0);
+    const objectif=params.objectif||50000;
+    const pct=Math.min(100,Math.round(total/objectif*100));
+    const fmt=function(n){return n>=1000?(n/1000).toFixed(1).replace('.0','')+'k €':n+' €';};
+    const el=document.getElementById('dash-ca-annee');
+    const sub=document.getElementById('dash-ca-pct');
+    if(el)el.textContent=fmt(total);
+    if(sub)sub.textContent=pct+'% de l\'objectif ('+fmt(objectif)+')';
+  }
 }
 
 // === NOTIF ===
@@ -528,12 +763,15 @@ function openModal(title,html,mode,idx=null){
   mMode=mode;mIdx=idx;
   document.getElementById('modal-title').textContent=title;
   document.getElementById('modal-body').innerHTML=html;
+  // Reset footer to default buttons
+  const footer=document.querySelector('.modal-footer');
+  if(footer)footer.innerHTML='<button class="btn" onclick="closeModal()">Annuler</button><button class="btn btn-primary" onclick="saveModal()"><i class="ti ti-check"></i> Enregistrer</button>';
   document.getElementById('modal-backdrop').classList.remove('hidden');
-  setTimeout(()=>document.querySelector('#modal-body input,#modal-body select')?.focus(),50);
+  setTimeout(function(){document.querySelector('#modal-body input,#modal-body select')?.focus();},50);
 }
 function closeModal(){document.getElementById('modal-backdrop').classList.add('hidden');}
 function closeModalBg(e){if(e.target===document.getElementById('modal-backdrop'))closeModal();}
-function saveModal(){if(mMode?.includes('contact'))saveContact();if(mMode?.includes('bien'))saveBien();if(mMode==='add-event'||mMode==='edit-event')saveEvent();if(mMode?.includes('doc'))saveDoc();if(mMode==='add-user')saveUser();if(mMode?.includes('membre'))saveMembre();}
+function saveModal(){if(mMode?.includes('contact'))saveContact();if(mMode?.includes('bien'))saveBien();if(mMode==='add-event'||mMode==='edit-event')saveEvent();if(mMode?.includes('doc'))saveDoc();if(mMode==='add-user')saveUser();if(mMode?.includes('membre'))saveMembre();if(mMode?.includes('commission'))saveCommission();}
 
 // === CONTACTS ===
 function cForm(c={}) {
@@ -564,12 +802,12 @@ function saveContact(){
   const d={prenom:p,nom:n,tel:document.getElementById('m-tel').value||'—',email:document.getElementById('m-email').value||'',type:document.getElementById('m-type').value,budget:document.getElementById('m-budget').value||'—',secteur:document.getElementById('m-secteur').value||'—',statut:document.getElementById('m-statut').value};
   if(mMode==='add-contact'){contacts.push(d);notif('Contact ajouté.');}
   else{contacts[mIdx]=d;notif('Contact mis à jour.');}
-  save();updateStats();renderContacts();closeModal();
+  save();updateStats();renderContacts();renderDashboard();closeModal();
 }
 function deleteContact(idx){
   const c=contacts[idx];
   if(!confirm('Supprimer '+c.prenom+' '+c.nom+' ?'))return;
-  contacts.splice(idx,1);save();updateStats();renderContacts();
+  contacts.splice(idx,1);save();updateStats();renderContacts();renderDashboard();
   notif(c.prenom+' '+c.nom+' supprimé.','amber');
 }
 function renderContacts(){
@@ -616,9 +854,12 @@ function saveBien(){
   const nom=document.getElementById('m-bnom').value.trim();
   if(!nom){alert('Nom du bien requis');return;}
   const d={nom,type:document.getElementById('m-btype').value,surface:document.getElementById('m-bsurf').value||'—',prix:document.getElementById('m-bprix').value||'—',ville:document.getElementById('m-bville').value||'—',statut:document.getElementById('m-bstatut').value};
+  const oldNom=mMode==='edit-bien'?biens[mIdx]?.nom:null;
   if(mMode==='add-bien'){biens.push(d);notif('Bien ajouté.');}
   else{biens[mIdx]=d;notif('Bien mis à jour.');}
-  save();updateStats();renderBiens();closeModal();
+  // Sync prix/surface/nom changes to finance auto-entries
+  if(typeof finance!=='undefined') syncBienToFinance(d, oldNom);
+  save();updateStats();renderBiens();renderDashboard();closeModal();
 }
 function deleteBien(idx){
   const b=biens[idx];
@@ -668,18 +909,21 @@ function loadEvents(){
   try{
     const raw=localStorage.getItem('im_events');
     if(!raw) return {
-      '2026-5-7':{title:'Visite T3',type:'Visite',heure:'14:00'},
-      '2026-5-9':{title:'Compromis Chen',type:'Compromis',heure:'10:30'},
-      '2026-5-14':{title:'Visite Vincennes',type:'Visite',heure:''},
-      '2026-5-16':{title:'Notaire',type:'Acte notarié',heure:'09:00'},
-      '2026-5-21':{title:'Mandat Girard',type:'Mandat',heure:''},
-      '2026-5-23':{title:'Visite studio',type:'Visite',heure:'16:30'},
-      '2026-5-28':{title:'Relance clients',type:'Relance',heure:''}
+      '2026-5-7':[{title:'Visite T3',type:'Visite',heure:'14:00'},{title:'Appel acheteur',type:'Relance',heure:'10:00'}],
+      '2026-5-9':[{title:'Compromis Chen',type:'Compromis',heure:'10:30'}],
+      '2026-5-14':[{title:'Visite Vincennes',type:'Visite',heure:''}],
+      '2026-5-16':[{title:'Notaire',type:'Acte notarié',heure:'09:00'}],
+      '2026-5-21':[{title:'Mandat Girard',type:'Mandat',heure:''}],
+      '2026-5-23':[{title:'Visite studio',type:'Visite',heure:'16:30'}],
+      '2026-5-28':[{title:'Relance clients',type:'Relance',heure:''}]
     };
     const parsed=JSON.parse(raw);
+    // Migrate old single-object format to array format
     const migrated={};
     for(const[k,v] of Object.entries(parsed)){
-      migrated[k]=typeof v==='string'?{title:v,type:'Autre',heure:''}:v;
+      if(Array.isArray(v)) migrated[k]=v;
+      else if(typeof v==='string') migrated[k]=[{title:v,type:'Autre',heure:''}];
+      else if(v&&v.title) migrated[k]=[v];
     }
     return migrated;
   }catch(e){return {};}
@@ -689,6 +933,7 @@ let calEvents=loadEvents();
 
 const MOIS=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 const TYPE_BADGE={'Visite':'badge-blue','Compromis':'badge-amber','Acte notarié':'badge-purple','Mandat':'badge-green','Relance':'badge-red','Autre':'badge-blue'};
+const TYPE_CLASS={'Visite':'ev-visite','Compromis':'ev-compromis','Acte notarié':'ev-acte','Mandat':'ev-mandat','Relance':'ev-relance','Autre':'ev-autre'};
 
 function calPrev(){calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderAgenda();}
 function calNext(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderAgenda();}
@@ -698,70 +943,139 @@ function renderAgenda(){
   const today=new Date();
   const isCurMo=today.getFullYear()===calYear&&today.getMonth()===calMonth;
   document.getElementById('cal-title').textContent=MOIS[calMonth]+' '+calYear;
-  document.getElementById('cal-header').innerHTML=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(d=>`<div class="cal-day-name">${d}</div>`).join('');
+  document.getElementById('cal-header').innerHTML=['Lun','Mar','M\u00e9r','Jeu','Ven','Sam','Dim'].map(function(d){return '<div class="cal-day-name">'+d+'</div>';}).join('');
   const firstDay=new Date(calYear,calMonth,1).getDay();
   const offset=(firstDay===0?6:firstDay-1);
   const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
   let h='';
-  for(let i=0;i<offset;i++)h+=`<div></div>`;
-  const typeClass={'Visite':'ev-visite','Compromis':'ev-compromis','Acte notarié':'ev-acte','Mandat':'ev-mandat','Relance':'ev-relance','Autre':'ev-autre'};
+  for(let i=0;i<offset;i++)h+='<div></div>';
+  const MAX_PILLS=3; // max events shown as pills before "+N more"
   for(let i=1;i<=daysInMonth;i++){
     const key=calYear+'-'+(calMonth+1)+'-'+i;
-    const ev=calEvents[key];
+    const evs=(calEvents[key]||[]).slice().sort(function(a,b){return (a.heure||'99:99').localeCompare(b.heure||'99:99');});
     const isToday=isCurMo&&i===today.getDate();
-    const evClass=ev?(typeClass[ev.type]||'has-event'):'';
-    const label=ev?(ev.heure?ev.heure+' '+ev.title:ev.title):'';
-    h+=`<div class="cal-day ${isToday?'today':evClass}" onclick="onDayClick(${i})">
-      <span>${i}</span>
-      ${ev?`<span class="cal-event-label">${label}</span>`:''}
-    </div>`;
+    // Day number
+    let dayHtml='<div class="cal-day-num">'+i+'</div>';
+    // Event pills
+    const shown=evs.slice(0,MAX_PILLS);
+    const rest=evs.length-MAX_PILLS;
+    shown.forEach(function(ev){
+      const cls='cal-ev-pill '+(TYPE_CLASS[ev.type]||'ev-autre');
+      const lbl=(ev.heure?ev.heure+' ':'')+ev.title;
+      dayHtml+='<div class="'+cls+'">'+lbl+'</div>';
+    });
+    if(rest>0) dayHtml+='<div class="cal-more">+'+rest+' autre'+(rest>1?'s':'')+'</div>';
+    h+='<div class="cal-day'+(isToday?' today':'')+'" onclick="onDayClick('+i+')">'+dayHtml+'</div>';
   }
   document.getElementById('cal-grid').innerHTML=h;
   renderEventsList();
 }
 
+
 function renderEventsList(){
-  const evs=Object.entries(calEvents)
-    .filter(([k])=>{const p=k.split('-');return parseInt(p[0])===calYear&&parseInt(p[1])===(calMonth+1);})
-    .sort((a,b)=>{
-      const da=parseInt(a[0].split('-')[2]),db=parseInt(b[0].split('-')[2]);
-      if(da!==db)return da-db;
-      return (a[1].heure||'99:99').localeCompare(b[1].heure||'99:99');
+  // Flatten all events of this month into a sorted list
+  const allEvs=[];
+  Object.entries(calEvents).forEach(function(entry){
+    const k=entry[0]; const arr=entry[1];
+    const p=k.split('-');
+    if(parseInt(p[0])!==calYear||parseInt(p[1])!==(calMonth+1))return;
+    const day=parseInt(p[2]);
+    (Array.isArray(arr)?arr:[arr]).forEach(function(v,idx){
+      allEvs.push({key:k,idx:idx,day:day,ev:v});
     });
+  });
+  allEvs.sort(function(a,b){
+    if(a.day!==b.day)return a.day-b.day;
+    return (a.ev.heure||'99:99').localeCompare(b.ev.heure||'99:99');
+  });
   const el=document.getElementById('cal-events-list');
-  if(!evs.length){
+  if(!allEvs.length){
     el.innerHTML='<div style="border-top:0.5px solid var(--border);padding-top:1rem;margin-top:.5rem;font-size:13px;color:var(--text3);text-align:center;padding-bottom:.5rem">Aucun événement ce mois-ci — cliquez sur un jour pour en ajouter</div>';
     return;
   }
-  el.innerHTML=`<div style="border-top:0.5px solid var(--border);padding-top:1rem;margin-top:.5rem">
-    <div style="font-size:12px;font-weight:500;color:var(--text3);margin-bottom:.75rem">ÉVÉNEMENTS DU MOIS (${evs.length})</div>
-    ${evs.map(([k,v])=>{
-      const d=k.split('-')[2];
-      const badge=TYPE_BADGE[v.type]||'badge-blue';
-      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-radius:var(--radius);margin-bottom:6px;gap:8px">
-        <div style="display:flex;align-items:center;gap:10px;min-width:0">
-          <span style="width:32px;height:32px;background:var(--blue-bg);color:var(--blue-text);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0">${d}</span>
-          <div style="min-width:0">
-            <div style="font-size:13px;font-weight:500">${v.title}</div>
-            <div style="display:flex;align-items:center;gap:6px;margin-top:2px">
-              <span class="badge ${badge}" style="font-size:10px">${v.type}</span>
-              ${v.heure?`<span style="font-size:11px;color:var(--text3)"><i class="ti ti-clock" style="font-size:11px;vertical-align:-1px"></i> ${v.heure}</span>`:''}
-            </div>
-          </div>
-        </div>
-        <div class="actions-cell">
-          <button class="btn btn-sm" onclick="openEditEvent('${k}')" title="Modifier"><i class="ti ti-edit"></i></button>
-          <button class="btn btn-sm btn-danger" onclick="deleteEvent('${k}')" title="Supprimer"><i class="ti ti-trash"></i></button>
-        </div>
-      </div>`;
-    }).join('')}
-  </div>`;
+  let html='<div style="border-top:0.5px solid var(--border);padding-top:1rem;margin-top:.5rem">'
+    +'<div style="font-size:12px;font-weight:500;color:var(--text3);margin-bottom:.75rem">ÉVÉNEMENTS DU MOIS ('+allEvs.length+')</div>';
+  allEvs.forEach(function(item){
+    const v=item.ev; const d=item.day; const k=item.key; const idx=item.idx;
+    const badge=TYPE_BADGE[v.type]||'badge-blue';
+    html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-radius:var(--radius);margin-bottom:6px;gap:8px">'
+      +'<div style="display:flex;align-items:center;gap:10px;min-width:0">'
+      +'<span style="width:32px;height:32px;background:var(--blue-bg);color:var(--blue-text);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0">'+d+'</span>'
+      +'<div style="min-width:0">'
+      +'<div style="font-size:13px;font-weight:500">'+v.title+'</div>'
+      +'<div style="display:flex;align-items:center;gap:6px;margin-top:2px">'
+      +'<span class="badge '+badge+'" style="font-size:10px">'+v.type+'</span>'
+      +(v.heure?'<span style="font-size:11px;color:var(--text3)"><i class="ti ti-clock" style="font-size:11px;vertical-align:-1px"></i> '+v.heure+'</span>':'')
+      +'</div></div></div>'
+      +'<div class="actions-cell" id="ev-act-'+k+'-'+idx+'"></div>'
+      +'</div>';
+  });
+  html+='</div>';
+  el.innerHTML=html;
+  // Attach buttons via DOM
+  allEvs.forEach(function(item){
+    const cell=document.getElementById('ev-act-'+item.key+'-'+item.idx);
+    if(!cell)return;
+    const ed=document.createElement('button');
+    ed.className='btn btn-sm'; ed.title='Modifier';
+    ed.innerHTML='<i class="ti ti-edit"></i>';
+    ed.onclick=(function(k,i){return function(){openEditEvent(k,i);};})(item.key,item.idx);
+    cell.appendChild(ed);
+    const rm=document.createElement('button');
+    rm.className='btn btn-sm btn-danger'; rm.title='Supprimer';
+    rm.innerHTML='<i class="ti ti-trash"></i>';
+    rm.onclick=(function(k,i){return function(){deleteEvent(k,i);};})(item.key,item.idx);
+    cell.appendChild(rm);
+  });
 }
 
 function onDayClick(day){
   const key=calYear+'-'+(calMonth+1)+'-'+day;
-  if(calEvents[key]) openEditEvent(key);
-  else openAddEventForDay(day);
+  const evs=calEvents[key]||[];
+  if(evs.length===0){
+    openAddEventForDay(day);
+  } else if(evs.length===1){
+    // One event: offer edit or add another
+    openDayMenu(day,key);
+  } else {
+    openDayMenu(day,key);
+  }
+}
+
+function openDayMenu(day,key){
+  const evs=calEvents[key]||[];
+  let html='<div style="margin-bottom:1rem">';
+  evs.forEach(function(ev,i){
+    const badge=TYPE_BADGE[ev.type]||'badge-blue';
+    html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--surface2);border-radius:var(--radius);margin-bottom:6px;gap:8px">'
+      +'<div><div style="font-size:13px;font-weight:500">'+ev.title+'</div>'
+      +'<div style="margin-top:2px"><span class="badge '+badge+'" style="font-size:10px">'+ev.type+'</span>'+(ev.heure?' <span style="font-size:11px;color:var(--text3)">'+ev.heure+'</span>':'')+'</div></div>'
+      +'<div class="actions-cell" id="dm-act-'+i+'"></div>'
+      +'</div>';
+  });
+  html+='</div>';
+  openModal('Jour '+day+' '+MOIS[calMonth], html, 'day-menu');
+  // Override footer
+  const footer=document.querySelector('.modal-footer');
+  if(footer){
+    footer.innerHTML='<button class="btn btn-primary" onclick="openAddEventForDay('+day+');"><i class="ti ti-plus"></i> Ajouter un événement</button>';
+  }
+  setTimeout(function(){
+    evs.forEach(function(ev,i){
+      const cell=document.getElementById('dm-act-'+i);
+      if(!cell)return;
+      const ed=document.createElement('button');
+      ed.className='btn btn-sm'; ed.title='Modifier';
+      ed.innerHTML='<i class="ti ti-edit"></i>';
+      ed.onclick=(function(k,idx){return function(){closeModal();openEditEvent(k,idx);};})(key,i);
+      cell.appendChild(ed);
+      const rm=document.createElement('button');
+      rm.className='btn btn-sm btn-danger'; rm.title='Supprimer';
+      rm.innerHTML='<i class="ti ti-trash"></i>';
+      rm.onclick=(function(k,idx){return function(){deleteEvent(k,idx);closeModal();};})(key,i);
+      cell.appendChild(rm);
+    });
+  },60);
 }
 
 function openAddEvent(){openAddEventForDay('');}
@@ -788,29 +1102,57 @@ function openAddEventForDay(day){
   setTimeout(()=>document.getElementById('ev-day')?.focus(),60);
 }
 
-function openEditEvent(key){
-  const ev=calEvents[key];
+function openEditEvent(key,idx){
+  idx=idx||0;
+  const evs=calEvents[key]||[];
+  const ev=evs[idx]||{};
   const day=key.split('-')[2];
-  openModal('Modifier l\'événement',eventForm(day,ev),'edit-event',key);
-  setTimeout(()=>document.getElementById('ev-title')?.focus(),60);
+  openModal('Modifier l\'événement',eventForm(day,ev),'edit-event',{key:key,idx:idx});
+  setTimeout(function(){document.getElementById('ev-title')?.focus();},60);
 }
+
 
 function saveEvent(){
   const day=parseInt(document.getElementById('ev-day').value);
-  const title=document.getElementById('ev-title').value.trim();
+  const title=(document.getElementById('ev-title').value||'').trim();
   const type=document.getElementById('ev-type').value;
   const heure=document.getElementById('ev-heure').value||'';
   if(!day||!title){alert('Jour et titre requis');return;}
   const newKey=calYear+'-'+(calMonth+1)+'-'+day;
-  if(mMode==='edit-event'&&mIdx&&mIdx!==newKey) delete calEvents[mIdx];
-  calEvents[newKey]={title,type,heure};
-  saveEvents();renderAgenda();closeModal();
+  const evObj={title:title,type:type,heure:heure};
+  if(mMode==='add-event'){
+    if(!calEvents[newKey])calEvents[newKey]=[];
+    calEvents[newKey].push(evObj);
+  } else {
+    // edit-event: mIdx = {key, idx}
+    const oldKey=mIdx&&mIdx.key?mIdx.key:newKey;
+    const evIdx=mIdx&&mIdx.idx!=null?mIdx.idx:0;
+    if(oldKey!==newKey){
+      // Day changed: remove from old key, add to new key
+      if(calEvents[oldKey]){
+        calEvents[oldKey].splice(evIdx,1);
+        if(calEvents[oldKey].length===0)delete calEvents[oldKey];
+      }
+      if(!calEvents[newKey])calEvents[newKey]=[];
+      calEvents[newKey].push(evObj);
+    } else {
+      if(!calEvents[newKey])calEvents[newKey]=[];
+      calEvents[newKey][evIdx]=evObj;
+    }
+  }
+  saveEvents();renderAgenda();renderDashboard();closeModal();
   notif(mMode==='add-event'?'Événement ajouté.':'Événement mis à jour.');
 }
 
-function deleteEvent(key){
-  delete calEvents[key];
-  saveEvents();renderAgenda();
+function deleteEvent(key,idx){
+  if(!calEvents[key])return;
+  if(idx!=null){
+    calEvents[key].splice(idx,1);
+    if(calEvents[key].length===0)delete calEvents[key];
+  } else {
+    delete calEvents[key];
+  }
+  saveEvents();renderAgenda();renderDashboard();
   notif('Événement supprimé.','amber');
 }
 
@@ -950,7 +1292,7 @@ function deleteDoc(idx){
   const d=docs[idx];
   if(!confirm('Supprimer "'+d.nom+'" ?'))return;
   docs.splice(idx,1);
-  save();renderFolders();renderDocs();
+  save();renderFolders();renderDocs();renderDashboard();
   notif('"'+d.nom+'" supprimé.','amber');
 }
 function renderDocs(){
@@ -1224,7 +1566,7 @@ function showKeySettings(){
 }
 
 // === ADMIN ===
-const PAGES_ALL=['dashboard','contacts','biens','pipeline','annonces','relances','agenda','docs','admin'];
+const PAGES_ALL=['dashboard','contacts','biens','annonces','relances','agenda','docs','admin'];
 
 function renderAdmin(){
   if(currentUser.role!=='admin')return;
@@ -1299,6 +1641,588 @@ function exportAllData(){
 function resetAll(){
   ['im_c','im_b','im_d','im_events'].forEach(function(k){try{localStorage.removeItem(k);}catch(e){}});
   location.reload();
+}
+
+// === PARAMETRES ===
+function loadParams(){
+  try{
+    const p=JSON.parse(localStorage.getItem('im_params'));
+    if(p){
+      // Migrate old format to tranches
+      if(!p.tranchesVente) p.tranchesVente=[{max:150000,taux:p.taux1||5},{max:300000,taux:p.taux2||4},{max:null,taux:p.taux3||3}];
+      if(!p.tranchesLoc) p.tranchesLoc=[{max:30,rate:p.rate1||12},{max:80,rate:p.rate2||10},{max:null,rate:p.rate3||8}];
+      return p;
+    }
+  }catch(e){}
+  return {
+    tranchesVente:[{max:150000,taux:5},{max:300000,taux:4},{max:null,taux:3}],
+    tranchesLoc:[{max:30,rate:12},{max:80,rate:10},{max:null,rate:8}],
+    objectif:50000
+  };
+}
+function saveParams(){try{localStorage.setItem('im_params',JSON.stringify(params));}catch(e){}}
+let params=loadParams();
+
+function renderParametres(){
+  renderTranchesVente();
+  renderTranchesLoc();
+  const oel=document.getElementById('param-objectif');
+  if(oel) oel.value=params.objectif||50000;
+  previewParamVente();
+  previewParamLoc();
+}
+
+function renderTranchesVente(){
+  const container=document.getElementById('param-tranches-vente');
+  if(!container)return;
+  const tranches=params.tranchesVente||[];
+  container.innerHTML='';
+  tranches.forEach(function(t,i){
+    const row=document.createElement('div');
+    row.style.cssText='display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:center;margin-bottom:8px;background:var(--surface2);border-radius:var(--radius);padding:10px 12px';
+    const isLast=(i===tranches.length-1);
+    row.innerHTML='<div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">'+(i===0?'Jusqu\'à':'De '+((tranches[i-1].max||0).toLocaleString('fr-FR'))+' € jusqu\'à')+'</label>'
+      +'<div style="display:flex;align-items:center;gap:6px">'
+      +(isLast?'<span style="font-size:13px;color:var(--text3)">Illimité</span>':'<input type="number" class="tv-max" data-idx="'+i+'" value="'+(t.max||'')+'" placeholder="300000" oninput="previewParamVente()" style="width:120px"> <span style="font-size:12px">€</span>')
+      +'</div></div>'
+      +'<div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">Taux d\'honoraires</label>'
+      +'<div style="display:flex;align-items:center;gap:6px"><input type="number" class="tv-taux" data-idx="'+i+'" value="'+(t.taux||0)+'" step="0.1" min="0" max="100" oninput="previewParamVente()" style="width:80px"> <span style="font-size:12px">%</span></div></div>'
+      +(tranches.length>1?'<button onclick="removeTranche(\'vente\','+i+')" class="btn btn-sm btn-danger" style="align-self:flex-end"><i class="ti ti-trash"></i></button>':'<div></div>');
+    container.appendChild(row);
+  });
+}
+
+function renderTranchesLoc(){
+  const container=document.getElementById('param-tranches-loc');
+  if(!container)return;
+  const tranches=params.tranchesLoc||[];
+  container.innerHTML='';
+  tranches.forEach(function(t,i){
+    const row=document.createElement('div');
+    row.style.cssText='display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:center;margin-bottom:8px;background:var(--surface2);border-radius:var(--radius);padding:10px 12px';
+    const isLast=(i===tranches.length-1);
+    row.innerHTML='<div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">'+(i===0?'Jusqu\'à':'De '+((tranches[i-1].max||0))+' m² jusqu\'à')+'</label>'
+      +'<div style="display:flex;align-items:center;gap:6px">'
+      +(isLast?'<span style="font-size:13px;color:var(--text3)">Illimité</span>':'<input type="number" class="tl-max" data-idx="'+i+'" value="'+(t.max||'')+'" placeholder="80" oninput="previewParamLoc()" style="width:100px"> <span style="font-size:12px">m²</span>')
+      +'</div></div>'
+      +'<div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">Tarif</label>'
+      +'<div style="display:flex;align-items:center;gap:6px"><input type="number" class="tl-rate" data-idx="'+i+'" value="'+(t.rate||0)+'" step="0.1" min="0" oninput="previewParamLoc()" style="width:80px"> <span style="font-size:12px">€/m²</span></div></div>'
+      +(tranches.length>1?'<button onclick="removeTranche(\'location\','+i+')" class="btn btn-sm btn-danger" style="align-self:flex-end"><i class="ti ti-trash"></i></button>':'<div></div>');
+    container.appendChild(row);
+  });
+}
+
+function addTranche(type){
+  if(type==='vente'){
+    const last=params.tranchesVente[params.tranchesVente.length-1];
+    const prevMax=params.tranchesVente.length>1?params.tranchesVente[params.tranchesVente.length-2].max:0;
+    last.max=prevMax?prevMax*2:300000;
+    params.tranchesVente.push({max:null,taux:last.taux});
+    renderTranchesVente();
+  } else {
+    const last=params.tranchesLoc[params.tranchesLoc.length-1];
+    const prevMax=params.tranchesLoc.length>1?params.tranchesLoc[params.tranchesLoc.length-2].max:0;
+    last.max=prevMax?prevMax*2:100;
+    params.tranchesLoc.push({max:null,rate:last.rate});
+    renderTranchesLoc();
+  }
+}
+
+function removeTranche(type,idx){
+  if(type==='vente'){
+    if(params.tranchesVente.length<=1)return;
+    params.tranchesVente.splice(idx,1);
+    params.tranchesVente[params.tranchesVente.length-1].max=null;
+    renderTranchesVente();
+  } else {
+    if(params.tranchesLoc.length<=1)return;
+    params.tranchesLoc.splice(idx,1);
+    params.tranchesLoc[params.tranchesLoc.length-1].max=null;
+    renderTranchesLoc();
+  }
+  previewParamVente();previewParamLoc();
+}
+
+function getTrancheTaux(prix){
+  const ts=params.tranchesVente||[];
+  for(var i=0;i<ts.length;i++){if(ts[i].max===null||prix<=ts[i].max)return ts[i].taux||0;}
+  return ts.length?ts[ts.length-1].taux:5;
+}
+function getTrancheRate(surface){
+  const ts=params.tranchesLoc||[];
+  for(var i=0;i<ts.length;i++){if(ts[i].max===null||surface<=ts[i].max)return ts[i].rate||0;}
+  return ts.length?ts[ts.length-1].rate:10;
+}
+
+function previewParamVente(){
+  const tranches=params.tranchesVente||[];
+  // Read live values from inputs
+  const liveTranches=tranches.map(function(t,i){
+    const maxEl=document.querySelector('.tv-max[data-idx="'+i+'"]');
+    const tauxEl=document.querySelector('.tv-taux[data-idx="'+i+'"]');
+    return {max:maxEl?parseFloat(maxEl.value)||null:t.max, taux:tauxEl?parseFloat(tauxEl.value)||0:t.taux};
+  });
+  const ex=[100000,250000,500000];
+  const preview=ex.map(function(p){
+    let t=liveTranches.length?liveTranches[liveTranches.length-1].taux:5;
+    for(var i=0;i<liveTranches.length;i++){if(liveTranches[i].max===null||p<=liveTranches[i].max){t=liveTranches[i].taux;break;}}
+    return p.toLocaleString('fr-FR')+'€ → '+(Math.round(p*t/100)).toLocaleString('fr-FR')+'€ ('+t+'%)';
+  }).join(' · ');
+  const el=document.getElementById('param-vente-preview');
+  if(el)el.textContent='Exemples : '+preview;
+}
+
+function previewParamLoc(){
+  const tranches=params.tranchesLoc||[];
+  const liveTranches=tranches.map(function(t,i){
+    const maxEl=document.querySelector('.tl-max[data-idx="'+i+'"]');
+    const rateEl=document.querySelector('.tl-rate[data-idx="'+i+'"]');
+    return {max:maxEl?parseFloat(maxEl.value)||null:t.max, rate:rateEl?parseFloat(rateEl.value)||0:t.rate};
+  });
+  const ex=[25,55,100];
+  const preview=ex.map(function(s){
+    let r=liveTranches.length?liveTranches[liveTranches.length-1].rate:10;
+    for(var i=0;i<liveTranches.length;i++){if(liveTranches[i].max===null||s<=liveTranches[i].max){r=liveTranches[i].rate;break;}}
+    return s+'m² → '+(Math.round(s*r)).toLocaleString('fr-FR')+'€ ('+r+'€/m²)';
+  }).join(' · ');
+  const el=document.getElementById('param-loc-preview');
+  if(el)el.textContent='Exemples : '+preview;
+}
+
+function saveParamVentes(){
+  const maxInputs=document.querySelectorAll('.tv-max');
+  const tauxInputs=document.querySelectorAll('.tv-taux');
+  params.tranchesVente=Array.from(tauxInputs).map(function(inp,i){
+    const maxEl=maxInputs[i];
+    return {max:maxEl?parseFloat(maxEl.value)||null:null, taux:parseFloat(inp.value)||0};
+  });
+  params.tranchesVente[params.tranchesVente.length-1].max=null;
+  saveParams();notif('Barème ventes enregistré.');
+}
+function saveParamLocs(){
+  const maxInputs=document.querySelectorAll('.tl-max');
+  const rateInputs=document.querySelectorAll('.tl-rate');
+  params.tranchesLoc=Array.from(rateInputs).map(function(inp,i){
+    const maxEl=maxInputs[i];
+    return {max:maxEl?parseFloat(maxEl.value)||null:null, rate:parseFloat(inp.value)||0};
+  });
+  params.tranchesLoc[params.tranchesLoc.length-1].max=null;
+  saveParams();notif('Barème locations enregistré.');
+}
+function saveParamObjectif(){
+  params.objectif=parseFloat(document.getElementById('param-objectif').value)||50000;
+  saveParams();notif('Objectif enregistré.');
+}
+
+// === FINANCE ===
+const FIN_STATUTS=['Payée','En attente','Annulée'];
+const FIN_BADGE={'Payée':'badge-green','En attente':'badge-amber','Annulée':'badge-red'};
+
+function loadFinance(){
+  try{
+    const f=localStorage.getItem('im_finance');
+    if(f) return JSON.parse(f);
+  }catch(e){}
+  return {ventes:[],locations:[],objectif:50000};
+}
+function saveFinance(){try{localStorage.setItem('im_finance',JSON.stringify(finance));}catch(e){}}
+let finance=loadFinance();
+let finTab='ventes';
+
+function finSwitchTab(tab,el){
+  finTab=tab;
+  document.getElementById('fin-tab-ventes').classList.toggle('hidden',tab!=='ventes');
+  document.getElementById('fin-tab-locations').classList.toggle('hidden',tab!=='locations');
+  const btnV=document.getElementById('fin-btn-ventes');
+  const btnL=document.getElementById('fin-btn-locations');
+  if(btnV){btnV.className=tab==='ventes'?'btn btn-primary':'btn';btnV.style.cssText='flex:1;justify-content:center;font-size:14px;padding:10px';}
+  if(btnL){btnL.className=tab==='locations'?'btn btn-primary':'btn';btnL.style.cssText='flex:1;justify-content:center;font-size:14px;padding:10px';}
+  renderFinance();
+}
+
+function finMontant(c){
+  if(c.com_calc&&parseFloat(c.com_calc)>0) return Math.round(parseFloat(c.com_calc));
+  if(c.type==='vente') return calcVenteCommission(parseFloat(c.prix)||0);
+  return calcLocCommission(parseFloat(c.surface)||0);
+}
+
+function syncBienToFinance(b, oldNom){
+  const prix=parseFloat((b.prix||'').replace(/[^0-9.]/g,''))||0;
+  const surface=parseFloat(b.surface)||0;
+  const loyer=prix;
+  // Update existing auto-entries matching this bien (by old name or current name)
+  const matchName=oldNom||b.nom;
+  finance.ventes.forEach(function(v){
+    if(v._auto&&v.bien===matchName){
+      v.bien=b.nom; // update name if changed
+      if(!v.com_calc||parseFloat(v.com_calc)===0) v.prix=String(prix); // update prix only if no manual override
+    }
+  });
+  finance.locations.forEach(function(l){
+    if(l._auto&&l.bien===matchName){
+      l.bien=b.nom;
+      if(!l.com_calc||parseFloat(l.com_calc)===0){
+        l.loyer=String(loyer);
+        l.surface=String(surface);
+      }
+    }
+  });
+  saveFinance();
+}
+
+function autoImportBiens(){
+  const venduStatuts=['Vendu','Acte final'];
+  const locStatuts=['En location'];
+
+  // Remove auto-entries whose bien no longer has the right statut
+  finance.ventes=finance.ventes.filter(function(v){
+    if(!v._auto) return true; // keep manual entries always
+    const b=biens.find(function(b){return b.nom===v.bien;});
+    return b&&venduStatuts.includes(b.statut);
+  });
+  finance.locations=finance.locations.filter(function(l){
+    if(!l._auto) return true;
+    const b=biens.find(function(b){return b.nom===l.bien;});
+    return b&&locStatuts.includes(b.statut);
+  });
+
+  // Add new auto-entries for biens that qualify
+  biens.forEach(function(b){
+    if(venduStatuts.includes(b.statut)){
+      const already=finance.ventes.find(function(v){return v.bien===b.nom&&v._auto;});
+      if(!already){
+        const prix=parseFloat((b.prix||'').replace(/[^0-9.]/g,''))||0;
+        finance.ventes.push({
+          type:'vente',bien:b.nom,agent:currentUser.nom||currentUser.email,
+          date:new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}),
+          prix:String(prix),statut:'En attente',notes:'Importé automatiquement',com_calc:'',_auto:true
+        });
+      }
+    }
+    if(locStatuts.includes(b.statut)){
+      const already=finance.locations.find(function(l){return l.bien===b.nom&&l._auto;});
+      if(!already){
+        const loyer=parseFloat((b.prix||'').replace(/[^0-9.]/g,''))||0;
+        const surface=parseFloat(b.surface)||0;
+        finance.locations.push({
+          type:'location',bien:b.nom,agent:currentUser.nom||currentUser.email,
+          date:new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}),
+          loyer:String(loyer),surface:String(surface),statut:'En attente',notes:'Importé automatiquement',com_calc:'',_auto:true
+        });
+      }
+    }
+  });
+  saveFinance();
+}
+
+function renderFinance(){
+  autoImportBiens();
+  const ventes=finance.ventes||[];
+  const locations=finance.locations||[];
+  const now=new Date();
+  const curMonth=now.getMonth();
+  const curYear=now.getFullYear();
+  const fmt=function(n){return Math.round(n).toLocaleString('fr-FR')+' €';};
+  function parseDate(str){if(!str)return null;const p=str.split('/');if(p.length===3)return new Date(parseInt(p[2]),parseInt(p[1])-1,parseInt(p[0]));return null;}
+  function isThisMonth(str){const d=parseDate(str);return d&&d.getMonth()===curMonth&&d.getFullYear()===curYear;}
+  function isThisYear(str){const d=parseDate(str);return d&&d.getFullYear()===curYear;}
+  const ventesOk=ventes.filter(function(v){return v.statut!=='Annulée';});
+  const ventesMois=ventesOk.filter(function(v){return isThisMonth(v.date);});
+  const ventesAnnee=ventesOk.filter(function(v){return isThisYear(v.date);});
+  const totalVentesMois=ventesMois.reduce(function(s,v){return s+finMontant(v);},0);
+  const totalVentesAnnee=ventesAnnee.reduce(function(s,v){return s+finMontant(v);},0);
+  const locsOk=locations.filter(function(l){return l.statut!=='Annulée';});
+  const locsMois=locsOk.filter(function(l){return isThisMonth(l.date);});
+  const locsAnnee=locsOk.filter(function(l){return isThisYear(l.date);});
+  const totalLocsMois=locsMois.reduce(function(s,l){return s+finMontant(l);},0);
+  const totalLocsAnnee=locsAnnee.reduce(function(s,l){return s+finMontant(l)*12;},0);
+  const caMois=totalVentesMois+totalLocsMois;
+  const caAnnee=totalVentesAnnee+totalLocsAnnee;
+  const objectif=params.objectif||finance.objectif||50000;
+  const pct=Math.min(100,Math.round(caAnnee/objectif*100));
+  const set=function(id,v){const el=document.getElementById(id);if(el)el.textContent=v;};
+  set('fin-ca-mois',fmt(caMois));
+  set('fin-ca-mois-sub',ventesMois.length+' vente(s) · '+locsMois.length+' loc.');
+  set('fin-ventes-mois',fmt(totalVentesMois));
+  set('fin-ventes-mois-sub',ventesMois.length+' transaction(s)');
+  set('fin-loc-mois',fmt(totalLocsMois));
+  set('fin-loc-mois-sub',locsMois.length+' contrat(s)');
+  set('fin-ca-annee',fmt(caAnnee));
+  set('fin-ca-annee-sub',pct+'% objectif');
+  set('fin-ventes-annee',fmt(totalVentesAnnee));
+  set('fin-ventes-annee-sub',ventesAnnee.length+' vente(s)');
+  set('fin-loc-annee',fmt(totalLocsAnnee));
+  set('fin-loc-annee-sub','(loyers × 12) · '+locsAnnee.length);
+  set('fin-objectif-label',fmt(caAnnee)+' / '+fmt(objectif));
+  set('fin-pct-badge',pct+'%');
+  const bar=document.getElementById('fin-progress-bar');
+  if(bar)bar.style.width=pct+'%';
+
+
+  // Ventes table
+  document.getElementById('fin-ventes-nb').textContent=ventes.length;
+  const vtBody=document.getElementById('fin-ventes-body');
+  if(vtBody){
+    vtBody.innerHTML='';
+    if(!ventes.length){
+      vtBody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:1.5rem">Aucune commission de vente</td></tr>';
+    } else {
+      ventes.forEach(function(c,i){
+        const montant=finMontant(c);
+        const badge=FIN_BADGE[c.statut]||'badge-blue';
+        const tr=document.createElement('tr');
+        const prix=parseFloat(c.prix)||0;
+        const tUsed=prix<=150000?(c.taux1||5):prix<=300000?(c.taux2||4):(c.taux3||3);
+        tr.innerHTML='<td><div style="font-weight:500">'+(c.bien||'—')+'</div><div style="font-size:11px;color:var(--text3)">'+(c.notes||'')+'</div></td>'
+          +'<td>'+(c.agent||'—')+'</td>'
+          +'<td>'+(c.prix?(parseFloat(c.prix).toLocaleString('fr-FR')+' €'):'—')+'</td>'
+          +'<td><span style="font-size:11px">'+tUsed+'%</span></td>'
+          +'<td style="font-weight:600;color:var(--green)">'+montant.toLocaleString('fr-FR')+' €</td>'
+          +'<td style="white-space:nowrap">'+(c.date||'—')+'</td>'
+          +'<td><span class="badge '+badge+'">'+c.statut+'</span></td>'
+          +'<td></td>';
+        const actCell=tr.querySelector('td:last-child');
+        const actWrap=document.createElement('div');
+        actWrap.className='actions-cell';
+        const ed=document.createElement('button');
+        ed.className='btn btn-sm'; ed.title='Modifier';
+        ed.innerHTML='<i class="ti ti-edit"></i>';
+        ed.onclick=(function(idx){return function(){openEditCommission('vente',idx);};})(i);
+        actWrap.appendChild(ed);
+        const rm=document.createElement('button');
+        rm.className='btn btn-sm btn-danger'; rm.title='Supprimer';
+        rm.innerHTML='<i class="ti ti-trash"></i>';
+        rm.onclick=(function(idx){return function(){deleteCommission('vente',idx);};})(i);
+        actWrap.appendChild(rm);
+        actCell.appendChild(actWrap);
+        vtBody.appendChild(tr);
+      });
+    }
+  }
+
+  // Locations table
+  document.getElementById('fin-loc-nb').textContent=locations.length;
+  const lcBody=document.getElementById('fin-loc-body');
+  if(lcBody){
+    lcBody.innerHTML='';
+    if(!locations.length){
+      lcBody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:1.5rem">Aucune commission de location</td></tr>';
+    } else {
+      locations.forEach(function(c,i){
+        const montant=finMontant(c);
+        const badge=FIN_BADGE[c.statut]||'badge-blue';
+        const tr=document.createElement('tr');
+        const surf=parseFloat(c.surface)||0;
+        const rUsed=surf<30?(c.rate1||12):surf<=80?(c.rate2||10):(c.rate3||8);
+        tr.innerHTML='<td><div style="font-weight:500">'+(c.bien||'—')+'</div><div style="font-size:11px;color:var(--text3)">'+(c.notes||'')+'</div></td>'
+          +'<td>'+(c.agent||'—')+'</td>'
+          +'<td>'+(c.surface?c.surface+' m²':'—')+'</td>'
+          +'<td>'+(c.loyer?(parseFloat(c.loyer).toLocaleString('fr-FR')+' €/mois'):'—')+'</td>'
+          +'<td style="font-weight:600;color:var(--green)">'+montant.toLocaleString('fr-FR')+' €</td>'
+          +'<td style="white-space:nowrap">'+(c.date||'—')+'</td>'
+          +'<td><span class="badge '+badge+'">'+c.statut+'</span></td>'
+          +'<td></td>';
+        const actCell=tr.querySelector('td:last-child');
+        const actWrap=document.createElement('div');
+        actWrap.className='actions-cell';
+        const ed=document.createElement('button');
+        ed.className='btn btn-sm'; ed.title='Modifier';
+        ed.innerHTML='<i class="ti ti-edit"></i>';
+        ed.onclick=(function(idx){return function(){openEditCommission('location',idx);};})(i);
+        actWrap.appendChild(ed);
+        const rm=document.createElement('button');
+        rm.className='btn btn-sm btn-danger'; rm.title='Supprimer';
+        rm.innerHTML='<i class="ti ti-trash"></i>';
+        rm.onclick=(function(idx){return function(){deleteCommission('location',idx);};})(i);
+        actWrap.appendChild(rm);
+        actCell.appendChild(actWrap);
+        lcBody.appendChild(tr);
+      });
+    }
+  }
+}
+
+function commissionForm(type, c){
+  c=c||{};
+  const today=new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const agentOpts=getUsers().filter(function(u){return ['agent','gerant'].includes(u.role);})
+    .map(function(u){return '<option value="'+(u.nom||u.email)+'"'+((c.agent===(u.nom||u.email))?' selected':'')+'>'+( u.nom||u.email)+'</option>';}).join('');
+  // For ventes: include price in option label; for locations: include surface
+  const bienOptsVente='<option value="">— Sélectionner —</option>'+biens.filter(function(b){return b.statut!=='En location';}).map(function(b){
+    return '<option value="'+b.nom+'" data-prix="'+b.prix+'"'+(c.bien===b.nom?' selected':'')+'>'+b.nom+(b.prix?' — '+b.prix:'')+'</option>';
+  }).join('');
+  const bienOptsLoc='<option value="">— Sélectionner —</option>'+biens.filter(function(b){return b.statut!=='En vente'&&b.statut!=='Vendu';}).map(function(b){
+    return '<option value="'+b.nom+'" data-surface="'+b.surface+'" data-prix="'+b.prix+'"'+(c.bien===b.nom?' selected':'')+'>'+b.nom+(b.surface?' — '+b.surface+'m²':'')+'</option>';
+  }).join('');
+  const statutOpts=FIN_STATUTS.map(function(s){return '<option'+(( c.statut||'En attente')===s?' selected':'')+'>'+s+'</option>';}).join('');
+
+  if(type==='vente'){
+    return '<div class="form-group"><label>Bien vendu</label><select id="fc-bien" onchange="onBienVenteChange()">'+bienOptsVente+'</select></div>'
+      +'<div class="form-row">'
+      +'<div><label>Agent responsable</label><select id="fc-agent">'+agentOpts+'</select></div>'
+      +'<div><label>Date</label><input id="fc-date" value="'+(c.date||today)+'" placeholder="jj/mm/aaaa"></div>'
+      +'</div>'
+      +'<div style="background:var(--blue-bg);color:var(--blue-text);border-radius:var(--radius);padding:8px 12px;font-size:12px;margin-bottom:12px">'
+      +'<i class="ti ti-info-circle" style="vertical-align:-2px;margin-right:4px"></i>'
+      +'Barème actuel : jusqu\'à 150k → '+(params.taux1||5)+'% · 150k–300k → '+(params.taux2||4)+'% · +300k → '+(params.taux3||3)+'%'
+      +'<span style="float:right"><a href="#" onclick="showPage(\'parametres\',null);return false;" style="color:inherit">Modifier →</a></span></div>'
+      +'<div class="form-row">'
+      +'<div><label>Prix de vente réel (€) *</label><input id="fc-prix" type="number" value="'+(c.prix||'')+'" placeholder="350 000" oninput="updateVentePreview()"></div>'
+      +'<div><label>Commission calculée (€)</label><input id="fc-com-calc" type="number" value="'+(c.com_calc||'')+'" placeholder="Calculée auto ou saisie manuelle"></div>'
+      +'</div>'
+      +'<div id="fc-preview" style="background:var(--green-bg);color:var(--green-text);border-radius:var(--radius);padding:10px 14px;font-size:13px;margin-bottom:12px;display:none"></div>'
+      +'<div class="form-row">'
+      +'<div><label>Statut</label><select id="fc-statut">'+statutOpts+'</select></div>'
+      +'<div><label>Notes</label><input id="fc-notes" value="'+(c.notes||'')+'" placeholder="Acheteur, remarques..."></div>'
+      +'</div>';
+  } else {
+    return '<div class="form-group"><label>Bien loué</label><select id="fc-bien" onchange="onBienLocChange()">'+bienOptsLoc+'</select></div>'
+      +'<div class="form-row">'
+      +'<div><label>Agent responsable</label><select id="fc-agent">'+agentOpts+'</select></div>'
+      +'<div><label>Date</label><input id="fc-date" value="'+(c.date||today)+'" placeholder="jj/mm/aaaa"></div>'
+      +'</div>'
+      +'<div style="background:var(--blue-bg);color:var(--blue-text);border-radius:var(--radius);padding:8px 12px;font-size:12px;margin-bottom:12px">'
+      +'<i class="ti ti-info-circle" style="vertical-align:-2px;margin-right:4px"></i>'
+      +'Barème actuel : <30m² → '+(params.rate1||12)+'€/m² · 30–80m² → '+(params.rate2||10)+'€/m² · +80m² → '+(params.rate3||8)+'€/m²'
+      +'<span style="float:right"><a href="#" onclick="showPage(\'parametres\',null);return false;" style="color:inherit">Modifier →</a></span></div>'
+      +'<div class="form-row">'
+      +'<div><label>Surface (m²) *</label><input id="fc-surface" type="number" value="'+(c.surface||'')+'" placeholder="65" oninput="updateLocPreview()"></div>'
+      +'<div><label>Loyer mensuel (€)</label><input id="fc-loyer" type="number" value="'+(c.loyer||'')+'" placeholder="900"></div>'
+      +'</div>'
+      +'<div class="form-row">'
+      +'<div><label>Commission calculée (€)</label><input id="fc-com-calc" type="number" value="'+(c.com_calc||'')+'" placeholder="Calculée auto ou saisie manuelle"></div>'
+      +'<div><label>Statut</label><select id="fc-statut">'+statutOpts+'</select></div>'
+      +'</div>'
+      +'<div id="fc-preview" style="background:var(--green-bg);color:var(--green-text);border-radius:var(--radius);padding:10px 14px;font-size:13px;margin-bottom:12px;display:none"></div>'
+      +'<div class="form-group"><label>Notes</label><input id="fc-notes" value="'+(c.notes||'')+'" placeholder="Locataire, remarques..."></div>';
+  }
+}
+
+function openAddCommission(type){
+  openModal(type==='vente'?'Nouvelle commission vente':'Nouvelle commission location', commissionForm(type), 'add-commission-'+type);
+  setTimeout(function(){
+    attachFinancePreview(type);
+    document.querySelector('#modal-body select, #modal-body input')?.focus();
+  },80);
+}
+function openEditCommission(type,idx){
+  const c=type==='vente'?finance.ventes[idx]:finance.locations[idx];
+  openModal(type==='vente'?'Modifier commission vente':'Modifier commission location', commissionForm(type,c), 'edit-commission-'+type, idx);
+  setTimeout(function(){attachFinancePreview(type);},80);
+}
+
+function attachFinancePreview(type){
+  // attach listeners for taux/rate changes to trigger preview
+  // barème from global params, no local inputs
+  if(type==='vente') updateVentePreview();
+  else updateLocPreview();
+}
+
+function calcVenteCommission(prix){
+  return Math.round(prix*getTrancheTaux(prix)/100);
+}
+function calcLocCommission(surface){
+  return Math.round(surface*getTrancheRate(surface));
+}
+
+function updateVentePreview(){
+  const prix=parseFloat(document.getElementById('fc-prix')?.value||0);
+  const preview=document.getElementById('fc-preview');
+  const calcEl=document.getElementById('fc-com-calc');
+  if(!prix){if(preview)preview.style.display='none';return;}
+  const com=calcVenteCommission(prix);
+  if(calcEl&&!calcEl._manual) calcEl.value=com;
+  if(preview){
+    const t1=params.taux1||5, t2=params.taux2||4, t3=params.taux3||3;
+    const taux=prix<=150000?t1:prix<=300000?t2:t3;
+    preview.style.display='block';
+    preview.innerHTML='<i class="ti ti-calculator" style="vertical-align:-2px;margin-right:6px"></i>'
+      +'<b>Commission : '+com.toLocaleString('fr-FR')+' €</b>'
+      +' <span style="opacity:.7">(taux appliqué : '+taux+'%)</span>';
+  }
+}
+
+function updateLocPreview(){
+  const surface=parseFloat(document.getElementById('fc-surface')?.value||0);
+  const preview=document.getElementById('fc-preview');
+  const calcEl=document.getElementById('fc-com-calc');
+  if(!surface){if(preview)preview.style.display='none';return;}
+  const com=calcLocCommission(surface);
+  if(calcEl&&!calcEl._manual) calcEl.value=com;
+  if(preview){
+    const r1=params.rate1||12, r2=params.rate2||10, r3=params.rate3||8;
+    const rate=surface<30?r1:surface<=80?r2:r3;
+    preview.style.display='block';
+    preview.innerHTML='<i class="ti ti-calculator" style="vertical-align:-2px;margin-right:6px"></i>'
+      +'<b>Commission : '+com.toLocaleString('fr-FR')+' €</b>'
+      +' <span style="opacity:.7">('+rate+' €/m² × '+surface+' m²)</span>';
+  }
+}
+
+function onBienVenteChange(){
+  const sel=document.getElementById('fc-bien');
+  if(!sel)return;
+  const opt=sel.options[sel.selectedIndex];
+  const prixStr=(opt.getAttribute('data-prix')||'').replace(/[^0-9.]/g,'');
+  const prix=parseFloat(prixStr)||0;
+  if(prix){
+    const prixEl=document.getElementById('fc-prix');
+    if(prixEl&&!prixEl.value) prixEl.value=Math.round(prix);
+    updateVentePreview();
+  }
+}
+
+function onBienLocChange(){
+  const sel=document.getElementById('fc-bien');
+  if(!sel)return;
+  const opt=sel.options[sel.selectedIndex];
+  const surface=parseFloat(opt.getAttribute('data-surface')||0);
+  const prixStr=(opt.getAttribute('data-prix')||'').replace(/[^0-9.]/g,'');
+  const loyer=parseFloat(prixStr)||0;
+  if(surface){
+    const surfEl=document.getElementById('fc-surface');
+    if(surfEl&&!surfEl.value) surfEl.value=surface;
+    updateLocPreview();
+  }
+  if(loyer){
+    const loyerEl=document.getElementById('fc-loyer');
+    if(loyerEl&&!loyerEl.value) loyerEl.value=Math.round(loyer);
+  }
+}
+
+function saveCommission(){
+  const type=mMode.replace('add-commission-','').replace('edit-commission-','');
+  const g=function(id){return (document.getElementById(id)||{}).value||'';};
+  let c={
+    type:type,
+    bien:g('fc-bien'),agent:g('fc-agent'),date:g('fc-date'),
+    statut:g('fc-statut')||'En attente',notes:g('fc-notes'),
+    com_calc:g('fc-com-calc')
+  };
+  if(type==='vente'){
+    c.prix=g('fc-prix');
+    c.taux1=g('fc-taux1')||'5'; c.taux2=g('fc-taux2')||'4'; c.taux3=g('fc-taux3')||'3';
+    if(!c.prix||c.prix==='0'){alert('Prix de vente requis');return;}
+    if(mMode.startsWith('add')){finance.ventes.push(c);}
+    else{finance.ventes[mIdx]=c;}
+  } else {
+    c.surface=g('fc-surface');
+    c.loyer=g('fc-loyer');
+    c.rate1=g('fc-rate1')||'12'; c.rate2=g('fc-rate2')||'10'; c.rate3=g('fc-rate3')||'8';
+    if(!c.surface||c.surface==='0'){alert('Surface requise');return;}
+    if(mMode.startsWith('add')){finance.locations.push(c);}
+    else{finance.locations[mIdx]=c;}
+  }
+  saveFinance();renderFinance();closeModal();
+  notif(mMode.startsWith('add')?'Commission ajoutée.':'Commission mise à jour.');
+}
+
+function deleteCommission(type,idx){
+  const arr=type==='vente'?finance.ventes:finance.locations;
+  if(!confirm('Supprimer cette commission ?'))return;
+  arr.splice(idx,1);
+  saveFinance();renderFinance();
+  notif('Commission supprimée.','amber');
 }
 
 // === ÉQUIPE ===
@@ -1467,9 +2391,9 @@ if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(
 // === INIT ===
 // Permission map: which roles can access which pages
 const ROLE_PAGES={
-  admin:     ['dashboard','contacts','biens','pipeline','annonces','relances','agenda','docs','equipe','admin'],
-  gerant:    ['dashboard','contacts','biens','pipeline','annonces','relances','agenda','docs','equipe'],
-  agent:     ['dashboard','contacts','biens','pipeline','annonces','relances','agenda','docs'],
+  admin:     ['dashboard','contacts','biens','annonces','relances','agenda','docs','equipe','finance','parametres','admin'],
+  gerant:    ['dashboard','contacts','biens','annonces','relances','agenda','docs','equipe','finance','parametres'],
+  agent:     ['dashboard','contacts','biens','annonces','relances','agenda','docs'],
   secretaire:['dashboard','contacts','agenda','docs']
 };
 const ROLE_LABELS={gerant:'Gérant',agent:'Agent',secretaire:'Secrétaire',admin:'Admin',user:'Utilisateur'};
@@ -1482,6 +2406,7 @@ function canAccess(page){
 
 function initApp(){
   updateStats();
+  renderDashboard();
   const role=currentUser.role||'agent';
   const isAdmin=role==='admin';
   const isGerant=role==='gerant'||isAdmin;
