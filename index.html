@@ -87,6 +87,12 @@
     .cal-day:hover{background:var(--surface2)}
     .cal-day.today{background:var(--blue);color:#fff}
     .cal-day.has-event{background:var(--blue-bg);color:var(--blue-text)}
+    .cal-day.ev-visite{background:#E6F1FB;color:#0C447C}
+    .cal-day.ev-compromis{background:#FAEEDA;color:#633806}
+    .cal-day.ev-acte{background:#EEEDFE;color:#3C3489}
+    .cal-day.ev-mandat{background:#EAF3DE;color:#27500A}
+    .cal-day.ev-relance{background:#FCEBEB;color:#791F1F}
+    .cal-day.ev-autre{background:var(--surface2);color:var(--text2)}
     .cal-event-label{font-size:9px;line-height:1.2;text-align:center}
     .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;display:flex;align-items:center;justify-content:center;padding:1rem}
     .modal{background:var(--surface);border-radius:var(--radius-lg);padding:1.5rem;width:100%;max-width:480px;max-height:90vh;overflow-y:auto}
@@ -323,16 +329,20 @@
       <!-- DOCUMENTS -->
       <div id="page-docs" class="hidden">
         <div class="card">
-          <div class="card-header"><span class="card-title">Documents</span><button class="btn btn-primary btn-sm"><i class="ti ti-upload"></i> Importer</button></div>
+          <div class="card-header">
+            <span class="card-title">Documents (<span id="doc-count">0</span>)</span>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button class="btn btn-primary btn-sm" onclick="document.getElementById('file-input').click()">
+                <i class="ti ti-upload"></i> Importer
+              </button>
+              <input type="file" id="file-input" style="display:none" multiple accept=".pdf,.doc,.docx,.jpg,.png,.xlsx,.xls" onchange="handleFileImport(event)">
+              <button class="btn btn-sm" onclick="openAddDoc()"><i class="ti ti-plus"></i> Ajouter manuellement</button>
+            </div>
+          </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Document</th><th>Type</th><th>Bien associé</th><th>Date</th><th>Statut</th></tr></thead>
-              <tbody>
-                <tr><td><i class="ti ti-file-text" style="margin-right:6px"></i>Mandat vente — Girard</td><td>Mandat</td><td>Maison Vincennes</td><td>02/05/2026</td><td><span class="badge badge-green">Signé</span></td></tr>
-                <tr><td><i class="ti ti-file-text" style="margin-right:6px"></i>Compromis — Chen</td><td>Compromis</td><td>T3 Montmartre</td><td>28/04/2026</td><td><span class="badge badge-amber">En attente</span></td></tr>
-                <tr><td><i class="ti ti-file-text" style="margin-right:6px"></i>DPE — Villa Boulogne</td><td>Diagnostic</td><td>Villa Boulogne</td><td>15/01/2025</td><td><span class="badge badge-red">À renouveler</span></td></tr>
-                <tr><td><i class="ti ti-file-text" style="margin-right:6px"></i>Bail — Bertrand</td><td>Location</td><td>Studio Nation</td><td>01/04/2026</td><td><span class="badge badge-green">Actif</span></td></tr>
-              </tbody>
+              <thead><tr><th>Document</th><th>Type</th><th>Bien associé</th><th>Date</th><th>Statut</th><th>Actions</th></tr></thead>
+              <tbody id="docs-body"></tbody>
             </table>
           </div>
         </div>
@@ -347,19 +357,31 @@
 const DC = [{prenom:'Marie',nom:'Dupont',type:'Acheteur',tel:'06 11 22 33 44',email:'',budget:'350 000 €',secteur:'Paris 11e',statut:'Chaud'},{prenom:'Paul',nom:'Laurent',type:'Acheteur',tel:'06 55 66 77 88',email:'',budget:'500 000 €',secteur:'Vincennes',statut:'Tiède'},{prenom:'Claire',nom:'Bertrand',type:'Locataire',tel:'07 12 34 56 78',email:'',budget:'900 €/mois',secteur:'Paris 20e',statut:'Chaud'},{prenom:'Jean',nom:'Chen',type:'Acheteur',tel:'06 98 76 54 32',email:'',budget:'400 000 €',secteur:'Banlieue est',statut:'Client'},{prenom:'Sophie',nom:'Moreau',type:'Vendeur',tel:'06 22 33 44 55',email:'',budget:'—',secteur:'Paris 15e',statut:'Client'}];
 const DB = [{nom:'Appart T3 Montmartre',type:'Appartement',surface:'68',prix:'420 000 €',ville:'Paris 18e',statut:'En vente'},{nom:'Studio Nation',type:'Appartement',surface:'28',prix:'850 €/mois',ville:'Paris 11e',statut:'En location'},{nom:'Maison Vincennes',type:'Maison',surface:'140',prix:'680 000 €',ville:'Vincennes',statut:'Mandat'},{nom:'Villa Boulogne',type:'Maison',surface:'210',prix:'1 200 000 €',ville:'Boulogne',statut:'En vente'},{nom:'T2 République',type:'Appartement',surface:'45',prix:'350 000 €',ville:'Paris 3e',statut:'Compromis'},{nom:'Loft Oberkampf',type:'Appartement',surface:'90',prix:'580 000 €',ville:'Paris 11e',statut:'En vente'}];
 
+const DD = [
+  {nom:'Mandat vente — Girard',type:'Mandat',bien:'Maison Vincennes',date:'02/05/2026',statut:'Signé',fichier:''},
+  {nom:'Compromis — Chen',type:'Compromis',bien:'T3 Montmartre',date:'28/04/2026',statut:'En attente',fichier:''},
+  {nom:'DPE — Villa Boulogne',type:'Diagnostic',bien:'Villa Boulogne',date:'15/01/2025',statut:'À renouveler',fichier:''},
+  {nom:'Bail — Bertrand',type:'Location',bien:'Studio Nation',date:'01/04/2026',statut:'Actif',fichier:''}
+];
+
 function load() {
   try {
     return {
       contacts: JSON.parse(localStorage.getItem('im_c')) || JSON.parse(JSON.stringify(DC)),
-      biens: JSON.parse(localStorage.getItem('im_b')) || JSON.parse(JSON.stringify(DB))
+      biens: JSON.parse(localStorage.getItem('im_b')) || JSON.parse(JSON.stringify(DB)),
+      docs: JSON.parse(localStorage.getItem('im_d')) || JSON.parse(JSON.stringify(DD))
     };
-  } catch(e) { return {contacts:JSON.parse(JSON.stringify(DC)),biens:JSON.parse(JSON.stringify(DB))}; }
+  } catch(e) { return {contacts:JSON.parse(JSON.stringify(DC)),biens:JSON.parse(JSON.stringify(DB)),docs:JSON.parse(JSON.stringify(DD))}; }
 }
 function save() {
-  try { localStorage.setItem('im_c',JSON.stringify(contacts)); localStorage.setItem('im_b',JSON.stringify(biens)); } catch(e){}
+  try {
+    localStorage.setItem('im_c',JSON.stringify(contacts));
+    localStorage.setItem('im_b',JSON.stringify(biens));
+    localStorage.setItem('im_d',JSON.stringify(docs));
+  } catch(e){}
 }
 
-let {contacts, biens} = load();
+let {contacts, biens, docs} = load();
 const pipeline = {'Prospection':[{t:'M. Moreau',s:'Loft Oberkampf',p:'580 k€'},{t:'Mme Silva',s:'T2 Bastille',p:'290 k€'}],'Visite':[{t:'Famille Dupont',s:'T3 Montmartre',p:'420 k€'},{t:'Mme Bertrand',s:'Studio Nation',p:'12k/an'}],'Offre':[{t:'Famille Chen',s:'Maison Vincennes',p:'650 k€'}],'Compromis':[{t:'M. Petit',s:'T2 République',p:'345 k€'}],'Acte final':[{t:'Mme Girard',s:'Vincennes',p:'680 k€'}]};
 // calEv now loaded dynamically in agenda section
 
@@ -379,6 +401,7 @@ function showPage(id,el) {
   if(id==='biens')renderBiens();
   if(id==='pipeline')renderPipeline();
   if(id==='agenda')renderAgenda();
+  if(id==='docs')renderDocs();
   updateStats();
 }
 function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('overlay').classList.toggle('open');}
@@ -413,7 +436,7 @@ function openModal(title,html,mode,idx=null){
 }
 function closeModal(){document.getElementById('modal-backdrop').classList.add('hidden');}
 function closeModalBg(e){if(e.target===document.getElementById('modal-backdrop'))closeModal();}
-function saveModal(){if(mMode?.includes('contact'))saveContact();if(mMode?.includes('bien'))saveBien();if(mMode==='add-event'||mMode==='edit-event')saveEvent();}
+function saveModal(){if(mMode?.includes('contact'))saveContact();if(mMode?.includes('bien'))saveBien();if(mMode==='add-event'||mMode==='edit-event')saveEvent();if(mMode?.includes('doc'))saveDoc();}
 
 // === CONTACTS ===
 function cForm(c={}) {
@@ -584,12 +607,14 @@ function renderAgenda(){
   const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
   let h='';
   for(let i=0;i<offset;i++)h+=`<div></div>`;
+  const typeClass={'Visite':'ev-visite','Compromis':'ev-compromis','Acte notarié':'ev-acte','Mandat':'ev-mandat','Relance':'ev-relance','Autre':'ev-autre'};
   for(let i=1;i<=daysInMonth;i++){
     const key=calYear+'-'+(calMonth+1)+'-'+i;
     const ev=calEvents[key];
     const isToday=isCurMo&&i===today.getDate();
+    const evClass=ev?(typeClass[ev.type]||'has-event'):'';
     const label=ev?(ev.heure?ev.heure+' '+ev.title:ev.title):'';
-    h+=`<div class="cal-day ${isToday?'today':ev?'has-event':''}" onclick="onDayClick(${i})">
+    h+=`<div class="cal-day ${isToday?'today':evClass}" onclick="onDayClick(${i})">
       <span>${i}</span>
       ${ev?`<span class="cal-event-label">${label}</span>`:''}
     </div>`;
@@ -692,6 +717,133 @@ function deleteEvent(key){
   notif('Événement supprimé.','amber');
 }
 
+
+// === DOCUMENTS ===
+const DOC_STATUTS=['Signé','Actif','En attente','À renouveler','Expiré','Archivé'];
+const DOC_TYPES=['Mandat','Compromis','Acte de vente','Diagnostic','DPE','Bail','Location','Contrat','Autre'];
+const DOC_BADGE={'Signé':'badge-green','Actif':'badge-green','En attente':'badge-amber','À renouveler':'badge-red','Expiré':'badge-red','Archivé':'badge-blue'};
+const DOC_ICONS={'Mandat':'ti-file-certificate','Compromis':'ti-file-text','Acte de vente':'ti-file-check','Diagnostic':'ti-file-analytics','DPE':'ti-file-analytics','Bail':'ti-file-text','Location':'ti-home','Contrat':'ti-file-invoice','Autre':'ti-file'};
+
+function dForm(d) {
+  d=d||{};
+  const today=new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
+  return `<div class="form-group">
+    <label>Nom du document *</label>
+    <input id="d-nom" value="${d.nom||''}" placeholder="Mandat vente — Dupont">
+  </div>
+  <div class="form-row">
+    <div><label>Type</label>
+      <select id="d-type">${DOC_TYPES.map(t=>`<option${d.type===t?' selected':''}>${t}</option>`).join('')}</select>
+    </div>
+    <div><label>Statut</label>
+      <select id="d-statut">${DOC_STATUTS.map(s=>`<option${d.statut===s?' selected':''}>${s}</option>`).join('')}</select>
+    </div>
+  </div>
+  <div class="form-row">
+    <div><label>Bien associé</label>
+      <select id="d-bien">
+        <option value="">— Aucun bien associé —</option>
+        ${biens.map(b=>`<option value="${b.nom}"${(d.bien===b.nom)?' selected':''}>${b.nom}</option>`).join('')}
+        ${d.bien&&d.bien!=='—'&&!biens.find(b=>b.nom===d.bien)?`<option value="${d.bien}" selected>${d.bien}</option>`:''}
+      </select>
+    </div>
+    <div><label>Date</label>
+      <input id="d-date" value="${d.date||today}" placeholder="jj/mm/aaaa">
+    </div>
+  </div>`;
+}
+
+function openAddDoc(){
+  openModal('Ajouter un document',dForm(),'add-doc');
+  setTimeout(()=>document.getElementById('d-nom')?.focus(),60);
+}
+function openEditDoc(idx){
+  openModal('Modifier le document',dForm(docs[idx]),'edit-doc',idx);
+  setTimeout(()=>document.getElementById('d-nom')?.focus(),60);
+}
+function saveDoc(){
+  const nom=document.getElementById('d-nom').value.trim();
+  if(!nom){alert('Nom du document requis');return;}
+  const d={
+    nom,
+    type:document.getElementById('d-type').value,
+    statut:document.getElementById('d-statut').value,
+    bien:document.getElementById('d-bien').value||'—',
+    date:document.getElementById('d-date').value||'—',
+    fichier:mMode==='edit-doc'?(docs[mIdx]?.fichier||''):''
+  };
+  if(mMode==='add-doc'){docs.push(d);notif('Document ajouté.');}
+  else{docs[mIdx]=d;notif('Document mis à jour.');}
+  save();renderDocs();closeModal();
+}
+function deleteDoc(idx){
+  const d=docs[idx];
+  if(!confirm('Supprimer "'+d.nom+'" ?'))return;
+  docs.splice(idx,1);
+  save();renderDocs();
+  notif('"'+d.nom+'" supprimé.','amber');
+}
+function renderDocs(){
+  document.getElementById('doc-count').textContent=docs.length;
+  document.getElementById('docs-body').innerHTML=docs.map((d,idx)=>{
+    const badge=DOC_BADGE[d.statut]||'badge-blue';
+    const icon=DOC_ICONS[d.type]||'ti-file';
+    return `<tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <i class="ti ${icon}" style="font-size:16px;color:var(--blue);flex-shrink:0"></i>
+          <div>
+            <div style="font-weight:500">${d.nom}</div>
+            ${d.fichier?`<div style="font-size:11px;color:var(--green);margin-top:1px"><i class="ti ti-paperclip" style="font-size:11px"></i> Fichier importé</div>`:''}
+          </div>
+        </div>
+      </td>
+      <td><span class="badge badge-blue" style="font-size:10px">${d.type}</span></td>
+      <td>${d.bien&&d.bien!=='—'?d.bien:'<span style="color:var(--text3)">—</span>'}</td>
+      <td style="white-space:nowrap">${d.date}</td>
+      <td><span class="badge ${badge}">${d.statut}</span></td>
+      <td><div class="actions-cell">
+        ${d.fichier?`<button class="btn btn-sm" onclick="downloadDoc(${idx})" title="Télécharger"><i class="ti ti-download"></i></button>`:''}
+        <button class="btn btn-sm" onclick="openEditDoc(${idx})" title="Modifier"><i class="ti ti-edit"></i></button>
+        <button class="btn btn-sm btn-danger" onclick="deleteDoc(${idx})" title="Supprimer"><i class="ti ti-trash"></i></button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+function handleFileImport(event){
+  const files=Array.from(event.target.files);
+  if(!files.length)return;
+  files.forEach(file=>{
+    const reader=new FileReader();
+    reader.onload=function(e){
+      const today=new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
+      const ext=file.name.split('.').pop().toLowerCase();
+      let type='Autre';
+      if(ext==='pdf'||ext==='docx'||ext==='doc'){
+        const n=file.name.toLowerCase();
+        if(n.includes('mandat'))type='Mandat';
+        else if(n.includes('compromis'))type='Compromis';
+        else if(n.includes('bail'))type='Bail';
+        else if(n.includes('dpe')||n.includes('diagnostic'))type='Diagnostic';
+        else if(n.includes('acte'))type='Acte de vente';
+        else type='Contrat';
+      }
+      docs.push({nom:file.name.replace(/\.[^.]+$/,''),type,statut:'Actif',bien:'—',date:today,fichier:e.target.result});
+      save();renderDocs();
+    };
+    reader.readAsDataURL(file);
+  });
+  event.target.value='';
+  setTimeout(()=>notif(files.length+' document(s) importé(s).'),300);
+}
+function downloadDoc(idx){
+  const d=docs[idx];
+  if(!d.fichier)return;
+  const a=document.createElement('a');
+  a.href=d.fichier;
+  a.download=d.nom;
+  a.click();
+}
 
 // === CSV ===
 function exportCSV(){
