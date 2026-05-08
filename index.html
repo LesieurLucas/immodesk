@@ -179,6 +179,30 @@
   </div>
 </div>
 
+<!-- AGENCY SELECTOR -->
+<div id="agency-screen" style="display:none;position:fixed;inset:0;z-index:998;align-items:center;justify-content:center;padding:1rem;background:linear-gradient(135deg,#0f3460 0%,#185FA5 60%,#1a8fe3 100%)">
+  <div style="background:var(--surface);border-radius:20px;padding:2rem;max-width:500px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.25)">
+    <div style="text-align:center;margin-bottom:1.5rem">
+      <div style="width:50px;height:50px;background:#185FA5;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto .75rem">
+        <svg viewBox="0 0 32 32" width="28" height="28"><path d="M16 4L3 14v1h3v13h7v-7h6v7h7V15h3v-1L16 4z" fill="white"/></svg>
+      </div>
+      <div style="font-size:18px;font-weight:600;color:var(--text)">Choisir une agence</div>
+      <div style="font-size:13px;color:var(--text3);margin-top:3px">Sélectionnez l'agence sur laquelle travailler</div>
+    </div>
+    <div id="agency-list" style="margin-bottom:1.25rem"></div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:10px" id="btn-new-agency" type="button">
+      <i class="ti ti-plus"></i> Créer une nouvelle agence
+    </button>
+    <div id="new-agency-form" style="display:none;margin-top:1rem;padding-top:1rem;border-top:0.5px solid var(--border)">
+      <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Nom de l'agence</label>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="new-agency-name" placeholder="Dupont Immobilier" style="flex:1">
+        <button class="btn btn-primary" type="button" id="btn-create-agency"><i class="ti ti-check"></i></button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL -->
 <div id="modal-backdrop" class="modal-backdrop hidden" onclick="closeModalBg(event)">
   <div class="modal" onclick="event.stopPropagation()">
@@ -198,9 +222,9 @@
 <div class="app" id="main-app" style="display:none">
   <div class="overlay" id="overlay" onclick="closeSidebar()"></div>
   <div class="sidebar" id="sidebar">
-    <div class="logo">
+    <div class="logo" style="cursor:pointer" onclick="switchAgency()" title="Changer d'agence">
       <div class="logo-title"><i class="ti ti-building"></i> ImmoDesk</div>
-      <div class="logo-sub">CRM agences indépendantes</div>
+      <div class="logo-sub" id="sidebar-agence-nom" style="display:flex;align-items:center;justify-content:space-between">CRM agences<i class="ti ti-switch-horizontal" style="font-size:12px;opacity:.5"></i></div>
     </div>
     <div class="nav-section">Principal</div>
     <div class="nav-item active" onclick="showPage('dashboard',this)"><i class="ti ti-layout-dashboard"></i> Tableau de bord</div>
@@ -522,8 +546,26 @@
       <div id="page-equipe" class="hidden">
         <div class="card">
           <div class="card-header">
-            <span class="card-title">Équipe (<span id="equipe-count">0</span>)</span>
-            <button class="btn btn-primary btn-sm" onclick="openAddMembre()"><i class="ti ti-user-plus"></i> Ajouter un membre</button>
+            <div>
+              <span class="card-title">Équipe (<span id="equipe-count">0</span>)</span>
+              <div style="font-size:12px;color:var(--text3);margin-top:2px" id="equipe-agence-name"></div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-sm" type="button" onclick="openInviteForm()"><i class="ti ti-mail-forward"></i> Inviter</button>
+              <button class="btn btn-primary btn-sm" type="button" onclick="openAddMembre()"><i class="ti ti-user-plus"></i> Ajouter</button>
+            </div>
+          </div>
+          <div id="invite-form" style="display:none;background:var(--surface2);border-radius:var(--radius);padding:1rem;margin-bottom:1rem">
+            <div style="font-size:13px;font-weight:500;margin-bottom:.75rem">Inviter un membre par email</div>
+            <div class="form-row">
+              <div><label>Email *</label><input type="email" id="inv-email" placeholder="agent@agence.fr"></div>
+              <div><label>Rôle</label><select id="inv-role"><option value="agent">Agent</option><option value="secretaire">Secrétaire</option><option value="gerant">Gérant</option></select></div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button class="btn btn-primary btn-sm" type="button" onclick="sendInvitation()"><i class="ti ti-send"></i> Générer le lien d'invitation</button>
+              <button class="btn btn-sm" type="button" onclick="document.getElementById('invite-form').style.display='none'">Annuler</button>
+            </div>
+            <div id="inv-link-result" style="display:none;margin-top:.75rem;background:var(--green-bg);color:var(--green-text);border-radius:var(--radius);padding:10px 12px;font-size:12px;word-break:break-all"></div>
           </div>
           <div class="table-wrap">
             <table>
@@ -1495,6 +1537,8 @@ try{
 let APIKEY='';
 let currentUser={email:'',role:'gerant',nom:'',id:''};
 let supaSession=null;
+let currentAgence={id:'',nom:''};
+let userAgences=[];
 
 function isGeminiKey(k){return k&&k.startsWith('AIza');}
 
@@ -1706,13 +1750,93 @@ async function doForgot(){
 async function onAuthSuccess(user){
   supaSession=user;
   const {data:profile}=await supa.from('profiles').select('*').eq('id',user.id).single();
-  currentUser={id:user.id,email:user.email,nom:profile?.nom||user.email.split('@')[0],role:profile?.role||'gerant'};
+  currentUser={id:user.id,email:user.email,nom:profile?.nom||user.email.split('@')[0],role:'gerant'};
   if(profile?.ai_key){APIKEY=profile.ai_key;}
   else{try{const k=localStorage.getItem('im_key')||'';if(k.startsWith('AIza')||k.startsWith('sk-ant-'))APIKEY=k;}catch(e){}}
-  await loadAllData();
+  // Check for invitation token in URL
+  const urlParams=new URLSearchParams(window.location.search);
+  const inviteToken=urlParams.get('invite');
+  if(inviteToken){
+    await acceptInvitation(inviteToken);
+    window.history.replaceState({},'',window.location.pathname);
+  }
+  // Load user's agencies
+  await loadUserAgences();
   document.getElementById('setup-screen').style.display='none';
+  if(userAgences.length===0){
+    // Create default agency
+    await createAgence(currentUser.nom+' Immobilier');
+    await loadUserAgences();
+  }
+  if(userAgences.length===1){
+    // Auto-select if only one agency
+    await selectAgence(userAgences[0]);
+  } else {
+    // Show agency selector
+    showAgencySelector();
+  }
+}
+
+async function loadUserAgences(){
+  const {data}=await supa.from('membres_agence')
+    .select('role, agences(id, nom, owner_id)')
+    .eq('user_id',currentUser.id);
+  userAgences=(data||[]).map(function(m){return {id:m.agences.id,nom:m.agences.nom,role:m.role,owner_id:m.agences.owner_id};});
+}
+
+function showAgencySelector(){
+  const list=document.getElementById('agency-list');
+  list.innerHTML='';
+  userAgences.forEach(function(ag){
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.style.cssText='width:100%;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--surface2);border:0.5px solid var(--border);border-radius:var(--radius-lg);margin-bottom:8px;cursor:pointer;font-size:14px;text-align:left';
+    btn.innerHTML='<div><div style="font-weight:500;color:var(--text)">'+ag.nom+'</div>'
+      +'<div style="font-size:12px;color:var(--text3);margin-top:2px"><span class="badge badge-purple" style="font-size:10px">'+ag.role+'</span></div></div>'
+      +'<i class="ti ti-arrow-right" style="color:var(--text3)"></i>';
+    btn.addEventListener('click',function(){selectAgence(ag);});
+    list.appendChild(btn);
+  });
+  document.getElementById('agency-screen').style.display='flex';
+  // Attach new agency form
+  const btnNew=document.getElementById('btn-new-agency');
+  const btnCreate=document.getElementById('btn-create-agency');
+  const form=document.getElementById('new-agency-form');
+  if(btnNew)btnNew.onclick=function(){form.style.display=form.style.display==='none'?'block':'none';};
+  if(btnCreate)btnCreate.onclick=async function(){
+    const nom=document.getElementById('new-agency-name').value.trim();
+    if(!nom)return;
+    await createAgence(nom);
+    await loadUserAgences();
+    showAgencySelector();
+  };
+}
+
+async function createAgence(nom){
+  const {data:ag}=await supa.from('agences').insert({nom:nom,owner_id:currentUser.id}).select().single();
+  if(ag){
+    await supa.from('membres_agence').insert({agence_id:ag.id,user_id:currentUser.id,role:'gerant'});
+  }
+  return ag;
+}
+
+async function selectAgence(ag){
+  currentAgence={id:ag.id,nom:ag.nom};
+  currentUser.role=ag.role||'gerant';
+  document.getElementById('agency-screen').style.display='none';
+  await loadAllData();
   document.getElementById('main-app').style.display='flex';
   initApp();
+}
+
+async function acceptInvitation(token){
+  const {data:inv}=await supa.from('invitations').select('*').eq('token',token).eq('used',false).single();
+  if(!inv)return notif('Invitation invalide ou expirée.','amber');
+  // Add user to agency
+  await supa.from('membres_agence').upsert({agence_id:inv.agence_id,user_id:currentUser.id,role:inv.role},{onConflict:'agence_id,user_id'});
+  // Mark invitation as used
+  await supa.from('invitations').update({used:true}).eq('id',inv.id);
+  notif('Vous avez rejoint l\'agence avec succès !');
 }
 
 async function doLogout(){
@@ -1721,6 +1845,7 @@ async function doLogout(){
   currentUser={email:'',role:'gerant',nom:'',id:''};
   contacts=[];biens=[];docs=[];calEvents={};finance={ventes:[],locations:[]};
   document.getElementById('main-app').style.display='none';
+  document.getElementById('agency-screen').style.display='none';
   document.getElementById('setup-screen').style.display='flex';
   document.getElementById('login-email').value='';
   document.getElementById('login-pwd').value='';
@@ -1745,6 +1870,74 @@ async function showKeySettings(){
 
 function getUsers(){return[];}
 function toggleApiSection(){}
+
+function switchAgency(){
+  document.getElementById('main-app').style.display='none';
+  currentAgence={id:'',nom:''};
+  contacts=[];biens=[];docs=[];calEvents={};finance={ventes:[],locations:[]};
+  showAgencySelector();
+}
+
+// === ÉQUIPE ===
+const ROLE_LABELS2={gerant:'Gérant',agent:'Agent',secretaire:'Secrétaire',admin:'Admin'};
+const ROLE_BADGES2={gerant:'badge-purple',agent:'badge-blue',secretaire:'badge-green',admin:'badge-red'};
+
+async function renderEquipe(){
+  const agNom=document.getElementById('equipe-agence-name');
+  if(agNom)agNom.textContent='Agence : '+currentAgence.nom;
+  const {data:membres}=await supa.from('membres_agence')
+    .select('role,statut,profiles(id,email,nom)')
+    .eq('agence_id',currentAgence.id);
+  const equipe=(membres||[]).map(function(m){
+    return{_id:m.profiles?.id,email:m.profiles?.email||'',nom:m.profiles?.nom||m.profiles?.email||'?',role:m.role||'agent',statut:m.statut||'actif'};
+  });
+  const el=document.getElementById('equipe-body');
+  const cnt=document.getElementById('equipe-count');
+  if(!el)return;
+  cnt.textContent=equipe.length;
+  el.innerHTML='';
+  equipe.forEach(function(m,i){
+    const tr=document.createElement('tr');
+    const role=m.role||'agent';
+    const badge=ROLE_BADGES2[role]||'badge-blue';
+    const label=ROLE_LABELS2[role]||role;
+    const statutBadge=m.statut==='actif'?'badge-green':'badge-amber';
+    const initials=(m.nom||'?').split(' ').map(function(w){return w[0]||'';}).join('').slice(0,2).toUpperCase();
+    const tdNom=document.createElement('td');
+    tdNom.innerHTML='<div style="display:flex;align-items:center;gap:8px"><span class="avatar">'+initials+'</span><div><div style="font-weight:500">'+m.nom+'</div></div></div>';
+    tr.appendChild(tdNom);
+    const tdEmail=document.createElement('td');
+    tdEmail.style.color='var(--text2)';
+    tdEmail.textContent=m.email||'—';
+    tr.appendChild(tdEmail);
+    const tdRole=document.createElement('td');
+    tdRole.innerHTML='<span class="badge '+badge+'">'+label+'</span>';
+    tr.appendChild(tdRole);
+    const tdStatut=document.createElement('td');
+    tdStatut.innerHTML='<span class="badge '+statutBadge+'">'+m.statut+'</span>';
+    tr.appendChild(tdStatut);
+    const tdAct=document.createElement('td');
+    // Only show remove for non-owner members
+    if(m._id!==currentUser.id){
+      const del=document.createElement('button');
+      del.className='btn btn-sm btn-danger'; del.title='Retirer';
+      del.innerHTML='<i class="ti ti-trash"></i>';
+      del.onclick=(function(uid){return async function(){
+        if(!confirm('Retirer ce membre de l\'agence ?'))return;
+        await supa.from('membres_agence').delete().eq('agence_id',currentAgence.id).eq('user_id',uid);
+        renderEquipe();
+        notif('Membre retiré.','amber');
+      };})(m._id);
+      tdAct.appendChild(del);
+    }
+    tr.appendChild(tdAct);
+    el.appendChild(tr);
+  });
+}
+
+function openAddMembre(){
+  notif('Utilisez le bouton "Inviter" pour ajouter des membres via email.','amber');
+}
 
 // === PWA ===
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
@@ -1803,6 +1996,9 @@ function initApp(){
     sidebarUser.innerHTML='<div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:2px">'+(currentUser.nom||currentUser.email)+'</div>'
       +'<span class="badge '+badge+'" style="font-size:10px">'+label+'</span>';
   }
+  // Show agence name in sidebar logo
+  const agNomEl=document.getElementById('sidebar-agence-nom');
+  if(agNomEl)agNomEl.innerHTML=currentAgence.nom+'<i class="ti ti-switch-horizontal" style="font-size:12px;opacity:.5"></i>';
 }
 function resetDocs(){
   docs=[];
@@ -1813,40 +2009,42 @@ function resetDocs(){
 
 // === LOAD ALL DATA FROM SUPABASE ===
 async function loadAllData(){
+  if(!currentAgence.id)return;
+  const aid=currentAgence.id;
+
   // Contacts
-  const cRows=await dbGet('contacts');
-  contacts=cRows.map(function(r){return{_id:r.id,prenom:r.prenom||'',nom:r.nom||'',type:r.type||'Acheteur',tel:r.tel||'—',email:r.email||'',budget:r.budget||'—',secteur:r.secteur||'—',statut:r.statut||'Froid'};});
+  const {data:cRows}=await supa.from('contacts').select('*').eq('agence_id',aid);
+  contacts=(cRows||[]).map(function(r){return{_id:r.id,prenom:r.prenom||'',nom:r.nom||'',type:r.type||'Acheteur',tel:r.tel||'—',email:r.email||'',budget:r.budget||'—',secteur:r.secteur||'—',statut:r.statut||'Froid'};});
 
   // Biens
-  const bRows=await dbGet('biens');
-  biens=bRows.map(function(r){return{_id:r.id,nom:r.nom||'',type:r.type||'Appartement',surface:r.surface||'',prix:r.prix||'',ville:r.ville||'',statut:r.statut||'En vente'};});
+  const {data:bRows}=await supa.from('biens').select('*').eq('agence_id',aid);
+  biens=(bRows||[]).map(function(r){return{_id:r.id,nom:r.nom||'',type:r.type||'Appartement',surface:r.surface||'',prix:r.prix||'',ville:r.ville||'',statut:r.statut||'En vente'};});
 
   // Documents
-  const dRows=await dbGet('documents');
-  docs=dRows.map(function(r){return{_id:r.id,nom:r.nom||'',type:r.type||'Autre',statut:r.statut||'Actif',bien:r.bien||'',dossier:r.dossier||'',date:r.date||'',fichier:r.fichier||''};});
-  // Load folders from distinct dossier values
+  const {data:dRows}=await supa.from('documents').select('*').eq('agence_id',aid);
+  docs=(dRows||[]).map(function(r){return{_id:r.id,nom:r.nom||'',type:r.type||'Autre',statut:r.statut||'Actif',bien:r.bien||'',dossier:r.dossier||'',date:r.date||'',fichier:r.fichier||''};});
   const allFolders=[...new Set(docs.map(function(d){return d.dossier;}).filter(Boolean))];
   folders=allFolders.length?allFolders:['Ventes','Locations','Diagnostics','Photos'];
 
   // Events
-  const eRows=await dbGet('evenements');
+  const {data:eRows}=await supa.from('evenements').select('*').eq('agence_id',aid);
   calEvents={};
-  eRows.forEach(function(r){
+  (eRows||[]).forEach(function(r){
     if(!calEvents[r.cal_key])calEvents[r.cal_key]=[];
     calEvents[r.cal_key].push({_id:r.id,title:r.title||'',type:r.type||'Autre',heure:r.heure||''});
   });
 
   // Finance
-  const fRows=await dbGet('finance');
+  const {data:fRows}=await supa.from('finance').select('*').eq('agence_id',aid);
   finance={ventes:[],locations:[]};
-  fRows.forEach(function(r){
+  (fRows||[]).forEach(function(r){
     const item={_id:r.id,type:r.type,bien:r.bien||'',agent:r.agent||'',date:r.date||'',statut:r.statut||'En attente',notes:r.notes||'',com_calc:r.com_calc||'',_auto:r.auto||false,prix:r.prix||'',taux1:r.taux1,taux2:r.taux2,taux3:r.taux3,surface:r.surface||'',loyer:r.loyer||'',rate1:r.rate1,rate2:r.rate2,rate3:r.rate3};
     if(r.type==='vente')finance.ventes.push(item);
     else finance.locations.push(item);
   });
 
   // Params
-  const {data:pRow}=await supa.from('parametres').select('*').eq('user_id',currentUser.id).single();
+  const {data:pRow}=await supa.from('parametres').select('*').eq('agence_id',aid).single();
   if(pRow){
     params={
       tranchesVente:pRow.tranches_vente||[{max:150000,taux:5},{max:300000,taux:4},{max:null,taux:3}],
@@ -1864,44 +2062,48 @@ function save(){
 
 // Override individual save functions to use Supabase
 async function saveContactSupabase(c){
+  const aid=currentAgence.id;
   if(c._id){
-    await dbUpdate('contacts',c._id,{prenom:c.prenom,nom:c.nom,type:c.type,tel:c.tel,email:c.email||'',budget:c.budget,secteur:c.secteur,statut:c.statut,user_id:currentUser.id});
+    await dbUpdate('contacts',c._id,{prenom:c.prenom,nom:c.nom,type:c.type,tel:c.tel,email:c.email||'',budget:c.budget,secteur:c.secteur,statut:c.statut,user_id:currentUser.id,agence_id:aid});
   } else {
-    const row=await dbInsert('contacts',{user_id:currentUser.id,prenom:c.prenom,nom:c.nom,type:c.type,tel:c.tel,email:c.email||'',budget:c.budget,secteur:c.secteur,statut:c.statut});
+    const row=await dbInsert('contacts',{user_id:currentUser.id,agence_id:aid,prenom:c.prenom,nom:c.nom,type:c.type,tel:c.tel,email:c.email||'',budget:c.budget,secteur:c.secteur,statut:c.statut});
     if(row)c._id=row.id;
   }
 }
 async function saveBienSupabase(b){
+  const aid=currentAgence.id;
   if(b._id){
-    await dbUpdate('biens',b._id,{nom:b.nom,type:b.type,surface:b.surface,prix:b.prix,ville:b.ville,statut:b.statut,user_id:currentUser.id});
+    await dbUpdate('biens',b._id,{nom:b.nom,type:b.type,surface:b.surface,prix:b.prix,ville:b.ville,statut:b.statut,user_id:currentUser.id,agence_id:aid});
   } else {
-    const row=await dbInsert('biens',{user_id:currentUser.id,nom:b.nom,type:b.type,surface:b.surface,prix:b.prix,ville:b.ville,statut:b.statut});
+    const row=await dbInsert('biens',{user_id:currentUser.id,agence_id:aid,nom:b.nom,type:b.type,surface:b.surface,prix:b.prix,ville:b.ville,statut:b.statut});
     if(row)b._id=row.id;
   }
 }
 async function saveDocSupabase(d){
+  const aid=currentAgence.id;
   if(d._id){
-    await dbUpdate('documents',d._id,{nom:d.nom,type:d.type,statut:d.statut,bien:d.bien,dossier:d.dossier,date:d.date,fichier:d.fichier,user_id:currentUser.id});
+    await dbUpdate('documents',d._id,{nom:d.nom,type:d.type,statut:d.statut,bien:d.bien,dossier:d.dossier,date:d.date,fichier:d.fichier,user_id:currentUser.id,agence_id:aid});
   } else {
-    const row=await dbInsert('documents',{user_id:currentUser.id,nom:d.nom,type:d.type,statut:d.statut,bien:d.bien||'',dossier:d.dossier||'',date:d.date||'',fichier:d.fichier||''});
+    const row=await dbInsert('documents',{user_id:currentUser.id,agence_id:aid,nom:d.nom,type:d.type,statut:d.statut,bien:d.bien||'',dossier:d.dossier||'',date:d.date||'',fichier:d.fichier||''});
     if(row)d._id=row.id;
   }
 }
 async function saveEventSupabase(key,ev){
+  const aid=currentAgence.id;
   if(ev._id){
-    await dbUpdate('evenements',ev._id,{cal_key:key,title:ev.title,type:ev.type,heure:ev.heure,user_id:currentUser.id});
+    await dbUpdate('evenements',ev._id,{cal_key:key,title:ev.title,type:ev.type,heure:ev.heure,user_id:currentUser.id,agence_id:aid});
   } else {
-    const row=await dbInsert('evenements',{user_id:currentUser.id,cal_key:key,title:ev.title,type:ev.type,heure:ev.heure||''});
+    const row=await dbInsert('evenements',{user_id:currentUser.id,agence_id:aid,cal_key:key,title:ev.title,type:ev.type,heure:ev.heure||''});
     if(row)ev._id=row.id;
   }
 }
 async function saveParamsSupabase(){
-  await dbUpsert('parametres',{user_id:currentUser.id,tranches_vente:params.tranchesVente,tranches_loc:params.tranchesLoc,objectif:params.objectif},'user_id');
+  await dbUpsert('parametres',{user_id:currentUser.id,agence_id:currentAgence.id,tranches_vente:params.tranchesVente,tranches_loc:params.tranchesLoc,objectif:params.objectif},'agence_id');
 }
 
 // Override saveFinance
 async function saveFinanceSupabase(item){
-  const row={user_id:currentUser.id,type:item.type,bien:item.bien||'',agent:item.agent||'',date:item.date||'',statut:item.statut||'En attente',notes:item.notes||'',com_calc:item.com_calc||'',auto:item._auto||false,prix:item.prix||'',taux1:item.taux1,taux2:item.taux2,taux3:item.taux3,surface:item.surface||'',loyer:item.loyer||'',rate1:item.rate1,rate2:item.rate2,rate3:item.rate3};
+  const row={user_id:currentUser.id,agence_id:currentAgence.id,type:item.type,bien:item.bien||'',agent:item.agent||'',date:item.date||'',statut:item.statut||'En attente',notes:item.notes||'',com_calc:item.com_calc||'',auto:item._auto||false,prix:item.prix||'',taux1:item.taux1,taux2:item.taux2,taux3:item.taux3,surface:item.surface||'',loyer:item.loyer||'',rate1:item.rate1,rate2:item.rate2,rate3:item.rate3};
   if(item._id){await dbUpdate('finance',item._id,row);} else {const r=await dbInsert('finance',row);if(r)item._id=r.id;}
 }
 
