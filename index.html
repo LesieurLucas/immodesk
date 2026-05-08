@@ -1987,6 +1987,40 @@ function switchAgency(){
 const ROLE_LABELS2={gerant:'Gérant',agent:'Agent',secretaire:'Secrétaire',admin:'Admin'};
 const ROLE_BADGES2={gerant:'badge-purple',agent:'badge-blue',secretaire:'badge-green',admin:'badge-red'};
 
+function openInviteForm(){
+  const form=document.getElementById('invite-form');
+  if(!form)return;
+  form.style.display=form.style.display==='none'?'block':'none';
+  document.getElementById('inv-link-result').style.display='none';
+  if(form.style.display==='block'){
+    setTimeout(function(){document.getElementById('inv-email')?.focus();},60);
+  }
+}
+
+async function sendInvitation(){
+  const email=(document.getElementById('inv-email').value||'').trim().toLowerCase();
+  const role=document.getElementById('inv-role').value;
+  if(!email)return notif('Email requis.','amber');
+  const {data:inv,error}=await supa.from('invitations').insert({
+    agence_id:currentAgence.id,
+    email:email,
+    role:role,
+    created_by:currentUser.id
+  }).select().single();
+  if(error)return notif('Erreur : '+error.message,'amber');
+  const link=window.location.origin+window.location.pathname+'?invite='+inv.token;
+  const res=document.getElementById('inv-link-result');
+  if(!res)return;
+  res.style.display='block';
+  res.innerHTML='<div style="margin-bottom:6px"><strong>Lien pour '+email+' ('+role+') :</strong></div>'
+    +'<div style="background:var(--surface);border-radius:4px;padding:6px 8px;font-family:monospace;font-size:11px;margin-bottom:8px;word-break:break-all">'+link+'</div>'
+    +'<button class="btn btn-sm" type="button" id="copy-inv-btn"><i class="ti ti-copy"></i> Copier le lien</button>'
+    +'<div style="margin-top:6px;font-size:11px;opacity:.7">Valable 7 jours. Partagez ce lien à '+email+'.</div>';
+  document.getElementById('copy-inv-btn').addEventListener('click',function(){
+    navigator.clipboard?.writeText(link).then(function(){notif('Lien copié !');});
+  });
+}
+
 async function renderEquipe(){
   const agNom=document.getElementById('equipe-agence-name');
   if(agNom)agNom.textContent='Agence : '+currentAgence.nom;
