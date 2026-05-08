@@ -243,7 +243,7 @@
         <div class="stats-grid">
           <div class="stat-card"><div class="stat-label">Biens gérés</div><div class="stat-value" id="stat-biens">0</div><div class="stat-delta" id="stat-biens-sub"></div></div>
           <div class="stat-card"><div class="stat-label">Contacts</div><div class="stat-value" id="stat-contacts">0</div><div class="stat-delta" id="stat-contacts-sub"></div></div>
-          <div class="stat-card"><div class="stat-label">Transactions</div><div class="stat-value">6</div><div class="stat-delta">2 compromis signés</div></div>
+          <div class="stat-card"><div class="stat-label">Transactions</div><div class="stat-value" id="stat-transactions">0</div><div class="stat-delta" id="stat-transactions-sub"></div></div>
           <div class="stat-card stat-gerant" id="stat-ca-card" style="display:none"><div class="stat-label">CA annuel</div><div class="stat-value" id="dash-ca-annee">—</div><div class="stat-delta" id="dash-ca-pct"></div></div>
         </div>
         <div class="two-col">
@@ -734,6 +734,11 @@ function updateStats() {
   document.getElementById('stat-biens').textContent=biens.length;
   document.getElementById('stat-contacts-sub').textContent=contacts.filter(c=>c.statut==='Chaud').length+' contact(s) chaud(s)';
   document.getElementById('stat-biens-sub').textContent=biens.filter(b=>b.statut==='En vente').length+' en vente';
+  const transactions=biens.filter(function(b){return b.statut==='Compromis'||b.statut==='Acte final';});
+  const tEl=document.getElementById('stat-transactions');
+  const tSub=document.getElementById('stat-transactions-sub');
+  if(tEl)tEl.textContent=transactions.length;
+  if(tSub)tSub.textContent=transactions.filter(function(b){return b.statut==='Compromis';}).length+' compromis signés';
   // CA annuel — gérant seulement
   if(typeof finance!=='undefined'&&typeof finMontant!=='undefined'){
     const curYear=new Date().getFullYear();
