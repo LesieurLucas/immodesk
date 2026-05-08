@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#185FA5">
   <title>ImmoDesk — CRM Immobilier</title>
-  <link rel="manifest" href="manifest.json">
+
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23185FA5'/%3E%3Cpath d='M16 7L6 15v1h2v9h6v-6h4v6h6V16h2v-1L16 7z' fill='white'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -801,7 +801,7 @@ function cForm(c={}) {
 }
 function openAddContact(){showPage('contacts',null);openModal('Nouveau contact',cForm(),'add-contact');}
 function openEditContact(idx){openModal('Modifier le contact',cForm(contacts[idx]),'edit-contact',idx);}
-function saveContact(){
+async function saveContact(){
   const p=document.getElementById('m-prenom').value.trim(),n=document.getElementById('m-nom').value.trim();
   if(!p||!n){alert('Prénom et nom requis');return;}
   const d={prenom:p,nom:n,tel:document.getElementById('m-tel').value||'—',email:document.getElementById('m-email').value||'',type:document.getElementById('m-type').value,budget:document.getElementById('m-budget').value||'—',secteur:document.getElementById('m-secteur').value||'—',statut:document.getElementById('m-statut').value};
@@ -809,7 +809,7 @@ function saveContact(){
   else{contacts[mIdx]=d;await saveContactSupabase(d);notif('Contact mis à jour.');}
   updateStats();renderContacts();renderDashboard();closeModal();
 }
-function deleteContact(idx){
+async function deleteContact(idx){
   const c=contacts[idx];
   if(!confirm('Supprimer '+c.prenom+' '+c.nom+' ?'))return;
   if(c._id)await dbDelete('contacts',c._id);
@@ -856,7 +856,7 @@ function bForm(b={}) {
 }
 function openAddBien(){showPage('biens',null);openModal('Ajouter un bien',bForm(),'add-bien');}
 function openEditBien(idx){openModal('Modifier le bien',bForm(biens[idx]),'edit-bien',idx);}
-function saveBien(){
+async function saveBien(){
   const nom=document.getElementById('m-bnom').value.trim();
   if(!nom){alert('Nom du bien requis');return;}
   const d={nom,type:document.getElementById('m-btype').value,surface:document.getElementById('m-bsurf').value||'—',prix:document.getElementById('m-bprix').value||'—',ville:document.getElementById('m-bville').value||'—',statut:document.getElementById('m-bstatut').value};
@@ -866,7 +866,7 @@ function saveBien(){
   if(typeof finance!=='undefined') syncBienToFinance(d, oldNom);
   updateStats();renderBiens();renderDashboard();closeModal();
 }
-function deleteBien(idx){
+async function deleteBien(idx){
   const b=biens[idx];
   if(!confirm('Supprimer '+b.nom+' ?'))return;
   if(b._id)await dbDelete('biens',b._id);
@@ -1118,7 +1118,7 @@ function openEditEvent(key,idx){
 }
 
 
-function saveEvent(){
+async function saveEvent(){
   const day=parseInt(document.getElementById('ev-day').value);
   const title=(document.getElementById('ev-title').value||'').trim();
   const type=document.getElementById('ev-type').value;
@@ -1153,7 +1153,7 @@ function saveEvent(){
   notif(mMode==='add-event'?'Événement ajouté.':'Événement mis à jour.');
 }
 
-function deleteEvent(key,idx){
+async function deleteEvent(key,idx){
   if(!calEvents[key])return;
   if(idx!=null){
     calEvents[key].splice(idx,1);
@@ -1268,7 +1268,7 @@ function openEditDoc(idx){
   openModal('Modifier le document',dForm(docs[idx]),'edit-doc',idx);
   setTimeout(()=>document.getElementById('d-nom')?.focus(),60);
 }
-function saveDoc(){
+async function saveDoc(){
   const nomEl=document.getElementById('d-nom');
   if(!nomEl){return;}
   const nom=nomEl.value.trim();
@@ -1298,7 +1298,7 @@ function saveDoc(){
   showPage('docs', null);
   notif(mMode==='add-doc'?'Document ajouté.':'Document mis à jour.');
 }
-function deleteDoc(idx){
+async function deleteDoc(idx){
   const d=docs[idx];
   if(!confirm('Supprimer "'+d.nom+'" ?'))return;
   if(d._id)await dbDelete('documents',d._id);
