@@ -1831,9 +1831,13 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 async function createAgence(nom){
-  const {data:ag}=await supa.from('agences').insert({nom:nom,owner_id:currentUser.id}).select().single();
+  // Insert agence
+  const {data:ag,error:e1}=await supa.from('agences').insert({nom:nom,owner_id:currentUser.id}).select().single();
+  if(e1){console.error('createAgence error:',e1);notif('Erreur : '+e1.message,'amber');return null;}
   if(ag){
-    await supa.from('membres_agence').insert({agence_id:ag.id,user_id:currentUser.id,role:'gerant'});
+    // Add owner as gérant member
+    const {error:e2}=await supa.from('membres_agence').insert({agence_id:ag.id,user_id:currentUser.id,role:'gerant'});
+    if(e2)console.error('membres_agence error:',e2);
   }
   return ag;
 }
