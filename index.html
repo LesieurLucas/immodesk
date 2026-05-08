@@ -932,10 +932,12 @@ async function saveBien(){
   if(!nom){alert('Nom du bien requis');return;}
   const d={nom,type:document.getElementById('m-btype').value,surface:document.getElementById('m-bsurf').value||'—',prix:document.getElementById('m-bprix').value||'—',ville:document.getElementById('m-bville').value||'—',statut:document.getElementById('m-bstatut').value};
   const oldNom=mMode==='edit-bien'?biens[mIdx]?.nom:null;
-  if(mMode==='add-bien'){biens.push(d);await saveBienSupabase(d);notif('Bien ajouté.');}
-  else{biens[mIdx]=d;await saveBienSupabase(d);notif('Bien mis à jour.');}
+  if(mMode==='add-bien'){biens.push(d);}
+  else{biens[mIdx]=d;}
   if(typeof finance!=='undefined') syncBienToFinance(d, oldNom);
   updateStats();renderBiens();renderDashboard();closeModal();
+  // Save to Supabase in background
+  saveBienSupabase(d).then(function(){notif(mMode==='add-bien'?'Bien ajouté.':'Bien mis à jour.');}).catch(function(e){notif('Erreur sauvegarde : '+e.message,'amber');});
 }
 async function deleteBien(idx){
   const b=biens[idx];
@@ -983,27 +985,9 @@ function renderPipeline(){
 let calYear=2026,calMonth=4;
 
 function loadEvents(){
-  try{
-    const raw=localStorage.getItem('im_events');
-    if(!raw) return {
-      '2026-5-7':[{title:'Visite T3',type:'Visite',heure:'14:00'},{title:'Appel acheteur',type:'Relance',heure:'10:00'}],
-      '2026-5-9':[{title:'Compromis Chen',type:'Compromis',heure:'10:30'}],
-      '2026-5-14':[{title:'Visite Vincennes',type:'Visite',heure:''}],
-      '2026-5-16':[{title:'Notaire',type:'Acte notarié',heure:'09:00'}],
-      '2026-5-21':[{title:'Mandat Girard',type:'Mandat',heure:''}],
-      '2026-5-23':[{title:'Visite studio',type:'Visite',heure:'16:30'}],
-      '2026-5-28':[{title:'Relance clients',type:'Relance',heure:''}]
-    };
-    const parsed=JSON.parse(raw);
-    // Migrate old single-object format to array format
-    const migrated={};
-    for(const[k,v] of Object.entries(parsed)){
-      if(Array.isArray(v)) migrated[k]=v;
-      else if(typeof v==='string') migrated[k]=[{title:v,type:'Autre',heure:''}];
-      else if(v&&v.title) migrated[k]=[v];
-    }
-    return migrated;
-  }catch(e){return {};}
+  // Events are now loaded from Supabase in loadAllData()
+  // Return empty - will be populated after auth
+  return {};
 }
 function saveEvents(){try{localStorage.setItem('im_events',JSON.stringify(calEvents));}catch(e){}}
 let calEvents=loadEvents();
@@ -2001,24 +1985,33 @@ async function sendInvitation(){
   const email=(document.getElementById('inv-email').value||'').trim().toLowerCase();
   const role=document.getElementById('inv-role').value;
   if(!email)return notif('Email requis.','amber');
-  const {data:inv,error}=await supa.from('invitations').insert({
-    agence_id:currentAgence.id,
-    email:email,
-    role:role,
-    created_by:currentUser.id
-  }).select().single();
+
+  // Check if user exists
+  const {data:existingProfiles}=await supa.from('profiles').select('id,email,nom').eq('email',email);
+  if(!existingProfiles||existingProfiles.length===0){
+    return notif('Aucun compte trouvé pour '+email+'. Cette personne doit d\'abord créer un compte.','amber');
+  }
+  const targetProfile=existingProfiles[0];
+
+  // Check not already member
+  const {data:existing}=await supa.from('membres_agence').select('id').eq('agence_id',currentAgence.id).eq('user_id',targetProfile.id);
+  if(existing&&existing.length>0){
+    return notif(targetProfile.nom||email+' est déjà membre de cette agence.','amber');
+  }
+
+  // Add directly to agence (no token needed since user exists)
+  const {error}=await supa.from('membres_agence').insert({agence_id:currentAgence.id,user_id:targetProfile.id,role:role});
   if(error)return notif('Erreur : '+error.message,'amber');
-  const link=window.location.origin+window.location.pathname+'?invite='+inv.token;
+
   const res=document.getElementById('inv-link-result');
-  if(!res)return;
-  res.style.display='block';
-  res.innerHTML='<div style="margin-bottom:6px"><strong>Lien pour '+email+' ('+role+') :</strong></div>'
-    +'<div style="background:var(--surface);border-radius:4px;padding:6px 8px;font-family:monospace;font-size:11px;margin-bottom:8px;word-break:break-all">'+link+'</div>'
-    +'<button class="btn btn-sm" type="button" id="copy-inv-btn"><i class="ti ti-copy"></i> Copier le lien</button>'
-    +'<div style="margin-top:6px;font-size:11px;opacity:.7">Valable 7 jours. Partagez ce lien à '+email+'.</div>';
-  document.getElementById('copy-inv-btn').addEventListener('click',function(){
-    navigator.clipboard?.writeText(link).then(function(){notif('Lien copié !');});
-  });
+  if(res){
+    res.style.display='block';
+    res.innerHTML='<i class="ti ti-check" style="color:var(--green);margin-right:6px"></i>'
+      +'<strong>'+(targetProfile.nom||email)+'</strong> a été ajouté à l\'agence en tant que <strong>'+role+'</strong>.';
+  }
+  notif((targetProfile.nom||email)+' ajouté à l\'équipe !');
+  // Refresh equipe list
+  renderEquipe();
 }
 
 async function renderEquipe(){
