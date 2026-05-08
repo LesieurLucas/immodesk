@@ -1937,6 +1937,9 @@ async function saveAgenceName(){
   const {error}=await supa.from('agences').update({nom:nom}).eq('id',currentAgence.id);
   if(error)return notif('Erreur : '+error.message,'amber');
   currentAgence.nom=nom;
+  // Update userAgences cache so selector shows the new name
+  const ag=userAgences.find(function(a){return a.id===currentAgence.id;});
+  if(ag)ag.nom=nom;
   // Update UI
   const badge=document.getElementById('param-agence-nom');
   if(badge)badge.textContent=nom;
