@@ -128,8 +128,8 @@
 
     <!-- Tabs login/signup -->
     <div style="display:flex;border-bottom:0.5px solid var(--border);margin-bottom:1.5rem">
-      <button id="tab-login" onclick="switchAuthTab('login')" style="flex:1;background:none;border:none;cursor:pointer;padding:8px;font-size:13px;font-weight:500;color:var(--blue);border-bottom:2px solid var(--blue)">Connexion</button>
-      <button id="tab-signup" onclick="switchAuthTab('signup')" style="flex:1;background:none;border:none;cursor:pointer;padding:8px;font-size:13px;color:var(--text3);border-bottom:2px solid transparent">Créer un compte</button>
+      <button id="tab-login" type="button" style="flex:1;background:none;border:none;cursor:pointer;padding:8px;font-size:13px;font-weight:500;color:var(--blue);border-bottom:2px solid var(--blue)">Connexion</button>
+      <button id="tab-signup" type="button" style="flex:1;background:none;border:none;cursor:pointer;padding:8px;font-size:13px;color:var(--text3);border-bottom:2px solid transparent">Créer un compte</button>
     </div>
 
     <!-- Error -->
@@ -157,23 +157,23 @@
     <div style="margin-bottom:1.5rem">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
         <label style="font-size:12px;color:var(--text2)">Mot de passe</label>
-        <button id="btn-forgot" onclick="doForgot()" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--blue)">Mot de passe oublié ?</button>
+        <button id="btn-forgot" type="button" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--blue)">Mot de passe oublié ?</button>
       </div>
       <div style="position:relative">
         <input type="password" id="login-pwd" placeholder="••••••••" style="padding-right:40px" onkeydown="if(event.key==='Enter')doLogin()">
-        <button onclick="toggleLoginPwd()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px" id="login-eye"><i class="ti ti-eye"></i></button>
+        <button type="button" id="login-eye" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px"><i class="ti ti-eye"></i></button>
       </div>
     </div>
 
     <!-- Submit -->
-    <button id="btn-auth" class="btn btn-primary" style="width:100%;justify-content:center;padding:10px;font-size:14px" onclick="doLogin()">
+    <button id="btn-auth" type="button" class="btn btn-primary" style="width:100%;justify-content:center;padding:10px;font-size:14px">
       <i class="ti ti-login"></i> Se connecter
     </button>
 
     <!-- Forgot password sent state -->
     <div id="forgot-sent" style="display:none;text-align:center;margin-top:1rem">
       <div style="font-size:13px;color:var(--green)"><i class="ti ti-mail-check" style="font-size:16px;vertical-align:-3px;margin-right:4px"></i>Email envoyé ! Vérifiez votre boîte mail.</div>
-      <button onclick="switchAuthTab('login')" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--blue);margin-top:8px">← Retour à la connexion</button>
+      <button id="btn-back-login" type="button" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--blue);margin-top:8px">← Retour à la connexion</button>
     </div>
 
   </div>
@@ -1606,6 +1606,24 @@ function copyText(id){navigator.clipboard?.writeText(document.getElementById(id)
 
 // === AUTH SUPABASE ===
 let authMode='login';
+
+// Attach login page events after DOM ready
+document.addEventListener('DOMContentLoaded', function(){
+  const tabLogin=document.getElementById('tab-login');
+  const tabSignup=document.getElementById('tab-signup');
+  const btnForgot=document.getElementById('btn-forgot');
+  const loginEye=document.getElementById('login-eye');
+  const btnAuth=document.getElementById('btn-auth');
+  const btnBack=document.getElementById('btn-back-login');
+  const pwdInput=document.getElementById('login-pwd');
+  if(tabLogin) tabLogin.addEventListener('click', function(){switchAuthTab('login');});
+  if(tabSignup) tabSignup.addEventListener('click', function(){switchAuthTab('signup');});
+  if(btnForgot) btnForgot.addEventListener('click', doForgot);
+  if(loginEye) loginEye.addEventListener('click', toggleLoginPwd);
+  if(btnAuth) btnAuth.addEventListener('click', doLogin);
+  if(btnBack) btnBack.addEventListener('click', function(){switchAuthTab('login');});
+  if(pwdInput) pwdInput.addEventListener('keydown', function(e){if(e.key==='Enter')doLogin();});
+});
 
 function switchAuthTab(mode){
   authMode=mode;
