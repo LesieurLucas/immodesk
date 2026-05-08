@@ -114,7 +114,7 @@
 <body>
 
 <!-- LOGIN / SIGNUP -->
-<div id="setup-screen" style="display:none;position:fixed;inset:0;z-index:999;align-items:center;justify-content:center;padding:1rem;background:linear-gradient(135deg,#0f3460 0%,#185FA5 60%,#1a8fe3 100%)">
+<div id="setup-screen" style="display:flex;position:fixed;inset:0;z-index:999;align-items:center;justify-content:center;padding:1rem;background:linear-gradient(135deg,#0f3460 0%,#185FA5 60%,#1a8fe3 100%)">
   <div style="background:var(--surface);border-radius:20px;padding:2.5rem;max-width:420px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.25)">
 
     <!-- Logo -->
@@ -1475,7 +1475,17 @@ function exportCSV(){
 // ══ SUPABASE ══
 const SUPA_URL='https://eqfgzempuoeweeljwyaf.supabase.co';
 const SUPA_KEY='sb_publishable_0gj6hJ1zfsvO1M3_ytpI4A_1NY7qcye';
-const supa=window.supabase.createClient(SUPA_URL,SUPA_KEY);
+let supa;
+try{
+  supa=window.supabase.createClient(SUPA_URL,SUPA_KEY);
+}catch(e){
+  console.error('Supabase SDK not loaded:',e);
+  // Show login screen anyway
+  document.addEventListener('DOMContentLoaded',function(){
+    const s=document.getElementById('setup-screen');
+    if(s)s.style.display='flex';
+  });
+}
 
 let APIKEY='';
 let currentUser={email:'',role:'gerant',nom:'',id:''};
@@ -1635,6 +1645,7 @@ async function doLogin(){
   const pwd=document.getElementById('login-pwd').value||'';
   if(!email)return showLoginError('Veuillez entrer votre email.');
   if(!pwd)return showLoginError('Veuillez entrer votre mot de passe.');
+  if(!supa)return showLoginError('Erreur de connexion au serveur. Rechargez la page.');
   const btn=document.getElementById('btn-auth');
   if(btn){btn.disabled=true;btn.textContent='Connexion...';}
   const {data,error}=await supa.auth.signInWithPassword({email,password:pwd});
@@ -1873,10 +1884,20 @@ async function saveFinanceSupabase(item){
 
 // Supabase session check on load
 (async function(){
-  document.getElementById('setup-screen').style.display='flex';
-  const {data:{session}}=await supa.auth.getSession();
-  if(session){
-    await onAuthSuccess(session.user);
+  // Ensure login screen is visible
+  const setupEl=document.getElementById('setup-screen');
+  if(setupEl)setupEl.style.display='flex';
+  if(!supa){
+    console.warn('Supabase not available - running in offline mode');
+    return;
+  }
+  try {
+    const {data:{session}}=await supa.auth.getSession();
+    if(session&&session.user){
+      await onAuthSuccess(session.user);
+    }
+  } catch(e) {
+    console.error('Supabase session check failed:', e);
   }
 })();
 </script>
