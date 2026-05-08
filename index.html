@@ -74,7 +74,7 @@
     input,select,textarea{width:100%;padding:8px 10px;border:0.5px solid var(--border2);border-radius:var(--radius);font-size:13px;font-family:inherit;color:var(--text);background:var(--surface2);outline:none;transition:border-color .12s}
     input:focus,select:focus,textarea:focus{border-color:var(--blue)}
     textarea{resize:vertical;min-height:80px}
-    .ai-output{background:var(--surface2);border-radius:var(--radius);padding:1rem;font-size:13px;line-height:1.65;margin-top:.75rem;white-space:pre-wrap;min-height:60px}
+    .ai-output{background:var(--surface2);border-radius:var(--radius);padding:1rem;font-size:13px;line-height:1.65;margin-top:.75rem;white-space:pre-wrap;min-height:60px;height:auto;overflow:visible;display:block}
     .ai-header{display:flex;align-items:center;gap:8px;margin-bottom:.75rem}
     .ai-badge{background:var(--purple-bg);color:var(--purple-text);font-size:11px;padding:2px 8px;border-radius:100px}
     .notif{border-radius:var(--radius);padding:10px 14px;font-size:13px;margin-bottom:1rem;display:none;align-items:center;gap:8px}
@@ -1541,7 +1541,7 @@ async function callAI(prompt){
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         contents:[{parts:[{text:prompt}]}],
-        generationConfig:{maxOutputTokens:1200,temperature:0.7}
+        generationConfig:{maxOutputTokens:2000,temperature:0.7}
       })
     });
     if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error((e.error&&e.error.message)||'Erreur Gemini '+r.status);}
@@ -1583,8 +1583,8 @@ async function genererAnnonce(){
   const promptAnnonce='Rédige directement une annonce immobilière professionnelle en français pour ce bien :\n'
     +'Type : '+type+'\nSurface : '+surface+' m²\nVille : '+ville+'\nPrix : '+prix+'\nPoints forts : '+points+'\n'
     +'Style : '+style+'\n\n'
-    +'Commence directement par le titre accrocheur, puis la description (2-3 phrases), puis les points clés. '
-    +'Environ 130 mots. Aucun commentaire, aucune introduction, aucun titre de section, uniquement le texte de l\'annonce.';
+    +'Commence directement par le titre accrocheur, puis la description complète (3-4 phrases), puis les points clés. '
+    +'Environ 150-200 mots. Rédige le texte COMPLET sans le tronquer. Aucun commentaire, aucune introduction, uniquement le texte de l\'annonce.';
   try{const r=await callAI(promptAnnonce);setRes('ai-result',r);document.getElementById('ai-actions').classList.remove('hidden');}
   catch(e){setRes('ai-result','Erreur : '+e.message);}
 }
