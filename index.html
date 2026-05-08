@@ -1797,20 +1797,38 @@ function showAgencySelector(){
     btn.addEventListener('click',function(){selectAgence(ag);});
     list.appendChild(btn);
   });
+  // Reset form state
+  const form=document.getElementById('new-agency-form');
+  const nameInput=document.getElementById('new-agency-name');
+  if(form)form.style.display='none';
+  if(nameInput)nameInput.value='';
   document.getElementById('agency-screen').style.display='flex';
-  // Attach new agency form
+}
+
+// These are global — attached once via DOMContentLoaded
+document.addEventListener('DOMContentLoaded',function(){
   const btnNew=document.getElementById('btn-new-agency');
   const btnCreate=document.getElementById('btn-create-agency');
   const form=document.getElementById('new-agency-form');
-  if(btnNew)btnNew.onclick=function(){form.style.display=form.style.display==='none'?'block':'none';};
-  if(btnCreate)btnCreate.onclick=async function(){
-    const nom=document.getElementById('new-agency-name').value.trim();
-    if(!nom)return;
-    await createAgence(nom);
-    await loadUserAgences();
-    showAgencySelector();
-  };
-}
+  if(btnNew)btnNew.addEventListener('click',function(){
+    if(form)form.style.display=form.style.display==='none'?'block':'none';
+  });
+  if(btnCreate)btnCreate.addEventListener('click',async function(){
+    const nom=(document.getElementById('new-agency-name').value||'').trim();
+    if(!nom){notif('Entrez un nom d\'agence.','amber');return;}
+    btnCreate.disabled=true;
+    btnCreate.innerHTML='<i class="ti ti-loader"></i>';
+    const ag=await createAgence(nom);
+    btnCreate.disabled=false;
+    btnCreate.innerHTML='<i class="ti ti-check"></i>';
+    if(ag){
+      await loadUserAgences();
+      showAgencySelector();
+    } else {
+      notif('Erreur lors de la création.','amber');
+    }
+  });
+});
 
 async function createAgence(nom){
   const {data:ag}=await supa.from('agences').insert({nom:nom,owner_id:currentUser.id}).select().single();
