@@ -540,6 +540,30 @@
           </div>
         </div>
 
+        <!-- Gestion de l'agence -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Gestion de l'agence</span>
+            <span class="badge badge-blue" id="param-agence-nom"></span>
+          </div>
+
+          <div style="margin-bottom:1.25rem">
+            <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:6px">Nom de l'agence</label>
+            <div style="display:flex;gap:8px">
+              <input type="text" id="param-agence-name-input" placeholder="Nom de l'agence" style="flex:1">
+              <button class="btn btn-primary btn-sm" type="button" onclick="saveAgenceName()"><i class="ti ti-check"></i> Renommer</button>
+            </div>
+          </div>
+
+          <div style="padding-top:1rem;border-top:0.5px solid var(--border)">
+            <div style="font-size:13px;color:var(--text2);margin-bottom:.75rem">Zone dangereuse</div>
+            <button class="btn btn-danger btn-sm" type="button" onclick="deleteAgence()">
+              <i class="ti ti-trash"></i> Supprimer cette agence
+            </button>
+            <div style="font-size:11px;color:var(--text3);margin-top:6px">Attention : toutes les données (contacts, biens, documents...) seront définitivement supprimées.</div>
+          </div>
+        </div>
+
       </div>
 
       <!-- EQUIPE -->
@@ -1892,6 +1916,62 @@ async function showKeySettings(){
 
 function getUsers(){return[];}
 function toggleApiSection(){}
+
+function renderParametres(){
+  const badge=document.getElementById('param-agence-nom');
+  const input=document.getElementById('param-agence-name-input');
+  if(badge)badge.textContent=currentAgence.nom;
+  if(input)input.value=currentAgence.nom;
+  renderTranchesVente();
+  renderTranchesLoc();
+  const oel=document.getElementById('param-objectif');
+  if(oel) oel.value=params.objectif||50000;
+  previewParamVente();
+  previewParamLoc();
+}
+
+async function saveAgenceName(){
+  const nom=(document.getElementById('param-agence-name-input').value||'').trim();
+  if(!nom)return notif('Entrez un nom valide.','amber');
+  if(nom===currentAgence.nom)return notif('Même nom, rien à changer.','amber');
+  const {error}=await supa.from('agences').update({nom:nom}).eq('id',currentAgence.id);
+  if(error)return notif('Erreur : '+error.message,'amber');
+  currentAgence.nom=nom;
+  // Update UI
+  const badge=document.getElementById('param-agence-nom');
+  if(badge)badge.textContent=nom;
+  const sidebarNom=document.getElementById('sidebar-agence-nom');
+  if(sidebarNom)sidebarNom.innerHTML=nom+'<i class="ti ti-switch-horizontal" style="font-size:12px;opacity:.5"></i>';
+  notif('Agence renommée en "'+nom+'".');
+}
+
+async function deleteAgence(){
+  if(!confirm('Supprimer l\'agence "'+currentAgence.nom+'" ?\n\nTous les contacts, biens, documents et données seront définitivement perdus.'))return;
+  if(!confirm('Dernière confirmation : cette action est irréversible.'))return;
+  // Delete all agence data
+  const aid=currentAgence.id;
+  await supa.from('contacts').delete().eq('agence_id',aid);
+  await supa.from('biens').delete().eq('agence_id',aid);
+  await supa.from('documents').delete().eq('agence_id',aid);
+  await supa.from('evenements').delete().eq('agence_id',aid);
+  await supa.from('finance').delete().eq('agence_id',aid);
+  await supa.from('parametres').delete().eq('agence_id',aid);
+  await supa.from('membres_agence').delete().eq('agence_id',aid);
+  const {error}=await supa.from('agences').delete().eq('id',aid);
+  if(error)return notif('Erreur : '+error.message,'amber');
+  // Go back to agency selector
+  await loadUserAgences();
+  currentAgence={id:'',nom:''};
+  contacts=[];biens=[];docs=[];calEvents={};finance={ventes:[],locations:[]};
+  document.getElementById('main-app').style.display='none';
+  if(userAgences.length===0){
+    // No agencies left — create a new one
+    showAgencySelector();
+  } else {
+    showAgencySelector();
+  }
+  notif('Agence supprimée.','amber');
+}
 
 function switchAgency(){
   document.getElementById('main-app').style.display='none';
