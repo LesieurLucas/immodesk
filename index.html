@@ -8,6 +8,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23185FA5'/%3E%3Cpath d='M16 7L6 15v1h2v9h6v-6h4v6h6V16h2v-1L16 7z' fill='white'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style>
     :root{--bg:#f5f5f3;--surface:#fff;--surface2:#f1efe8;--border:rgba(0,0,0,0.1);--border2:rgba(0,0,0,0.18);--text:#1a1a18;--text2:#5f5e5a;--text3:#888780;--blue:#185FA5;--blue-bg:#E6F1FB;--blue-text:#0C447C;--green:#1D9E75;--green-bg:#E1F5EE;--green-text:#085041;--amber:#BA7517;--amber-bg:#FAEEDA;--amber-text:#633806;--red:#A32D2D;--red-bg:#FCEBEB;--red-text:#791F1F;--purple:#534AB7;--purple-bg:#EEEDFE;--purple-text:#3C3489;--radius:8px;--radius-lg:12px}
     @media(prefers-color-scheme:dark){:root{--bg:#1a1a18;--surface:#242420;--surface2:#2c2c2a;--border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.18);--text:#e8e6dc;--text2:#b4b2a9;--text3:#888780;--blue-bg:#0C447C;--blue-text:#B5D4F4;--green-bg:#085041;--green-text:#9FE1CB;--amber-bg:#633806;--amber-text:#FAC775;--red-bg:#791F1F;--red-text:#F7C1C1;--purple-bg:#3C3489;--purple-text:#CECBF6}}
@@ -112,12 +113,12 @@
 </head>
 <body>
 
-<!-- LOGIN -->
+<!-- LOGIN / SIGNUP -->
 <div id="setup-screen" style="display:none;position:fixed;inset:0;z-index:999;align-items:center;justify-content:center;padding:1rem;background:linear-gradient(135deg,#0f3460 0%,#185FA5 60%,#1a8fe3 100%)">
-  <div style="background:var(--surface);border-radius:20px;padding:2.5rem;max-width:400px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.25)">
+  <div style="background:var(--surface);border-radius:20px;padding:2.5rem;max-width:420px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.25)">
 
     <!-- Logo -->
-    <div style="text-align:center;margin-bottom:2rem">
+    <div style="text-align:center;margin-bottom:1.75rem">
       <div style="width:60px;height:60px;background:#185FA5;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto .75rem">
         <svg viewBox="0 0 32 32" width="34" height="34"><path d="M16 4L3 14v1h3v13h7v-7h6v7h7V15h3v-1L16 4z" fill="white"/></svg>
       </div>
@@ -125,50 +126,54 @@
       <div style="font-size:13px;color:var(--text3);margin-top:3px">CRM Immobilier</div>
     </div>
 
-    <!-- Login error -->
+    <!-- Tabs login/signup -->
+    <div style="display:flex;border-bottom:0.5px solid var(--border);margin-bottom:1.5rem">
+      <button id="tab-login" onclick="switchAuthTab('login')" style="flex:1;background:none;border:none;cursor:pointer;padding:8px;font-size:13px;font-weight:500;color:var(--blue);border-bottom:2px solid var(--blue)">Connexion</button>
+      <button id="tab-signup" onclick="switchAuthTab('signup')" style="flex:1;background:none;border:none;cursor:pointer;padding:8px;font-size:13px;color:var(--text3);border-bottom:2px solid transparent">Créer un compte</button>
+    </div>
+
+    <!-- Error -->
     <div id="login-error" style="background:#FCEBEB;color:#791F1F;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:1rem;display:none">
       <i class="ti ti-alert-circle" style="vertical-align:-2px;margin-right:6px"></i><span id="login-error-msg"></span>
+    </div>
+    <!-- Success -->
+    <div id="login-success" style="background:#E1F5EE;color:#085041;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:1rem;display:none">
+      <i class="ti ti-check" style="vertical-align:-2px;margin-right:6px"></i><span id="login-success-msg"></span>
+    </div>
+
+    <!-- Nom (signup only) -->
+    <div id="field-nom" style="margin-bottom:12px;display:none">
+      <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Votre nom</label>
+      <input type="text" id="login-nom" placeholder="Marie Dupont">
     </div>
 
     <!-- Email -->
     <div style="margin-bottom:12px">
-      <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Adresse email</label>
-      <input type="email" id="login-email" placeholder="agent@agence.fr" onkeydown="if(event.key==='Enter')document.getElementById('login-pwd').focus()">
+      <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Email</label>
+      <input type="email" id="login-email" placeholder="gerant@agence.fr" onkeydown="if(event.key==='Enter')document.getElementById('login-pwd').focus()">
     </div>
 
     <!-- Password -->
-    <div style="margin-bottom:6px">
-      <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Mot de passe</label>
+    <div style="margin-bottom:1.5rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <label style="font-size:12px;color:var(--text2)">Mot de passe</label>
+        <button id="btn-forgot" onclick="doForgot()" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--blue)">Mot de passe oublié ?</button>
+      </div>
       <div style="position:relative">
         <input type="password" id="login-pwd" placeholder="••••••••" style="padding-right:40px" onkeydown="if(event.key==='Enter')doLogin()">
         <button onclick="toggleLoginPwd()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px" id="login-eye"><i class="ti ti-eye"></i></button>
       </div>
     </div>
 
-    <!-- Remember -->
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:1.5rem;margin-top:10px">
-      <input type="checkbox" id="login-remember" style="width:auto" checked>
-      <label for="login-remember" style="font-size:12px;color:var(--text2);cursor:pointer">Rester connecté</label>
-    </div>
-
     <!-- Submit -->
-    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:10px;font-size:14px" onclick="doLogin()">
+    <button id="btn-auth" class="btn btn-primary" style="width:100%;justify-content:center;padding:10px;font-size:14px" onclick="doLogin()">
       <i class="ti ti-login"></i> Se connecter
     </button>
 
-    <!-- API key section (collapsed) -->
-    <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:0.5px solid var(--border)">
-      <button id="login-key-btn" onclick="toggleApiSection()" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--text3);display:flex;align-items:center;gap:4px;width:100%;display:none">
-        <i class="ti ti-key" style="font-size:14px"></i> Configurer la clé IA (optionnel)
-        <i class="ti ti-chevron-down" id="api-chevron" style="font-size:14px;margin-left:auto;transition:transform .2s"></i>
-      </button>
-      <div id="api-section" style="display:none;margin-top:.75rem">
-        <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Clé API Anthropic</label>
-        <input type="password" id="api-key-input" id="api-key-input" placeholder="AIzaSy... (Gemini) ou sk-ant-... (Claude)" style="font-family:monospace;font-size:12px;margin-bottom:8px">
-        <div style="font-size:11px;color:var(--text3)">
-          <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--blue)">→ Clé Gemini gratuite (aistudio.google.com)</a> · <a href="https://console.anthropic.com" target="_blank" style="color:var(--text3);font-size:11px">Claude (payant)</a>
-        </div>
-      </div>
+    <!-- Forgot password sent state -->
+    <div id="forgot-sent" style="display:none;text-align:center;margin-top:1rem">
+      <div style="font-size:13px;color:var(--green)"><i class="ti ti-mail-check" style="font-size:16px;vertical-align:-3px;margin-right:4px"></i>Email envoyé ! Vérifiez votre boîte mail.</div>
+      <button onclick="switchAuthTab('login')" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--blue);margin-top:8px">← Retour à la connexion</button>
     </div>
 
   </div>
@@ -800,14 +805,15 @@ function saveContact(){
   const p=document.getElementById('m-prenom').value.trim(),n=document.getElementById('m-nom').value.trim();
   if(!p||!n){alert('Prénom et nom requis');return;}
   const d={prenom:p,nom:n,tel:document.getElementById('m-tel').value||'—',email:document.getElementById('m-email').value||'',type:document.getElementById('m-type').value,budget:document.getElementById('m-budget').value||'—',secteur:document.getElementById('m-secteur').value||'—',statut:document.getElementById('m-statut').value};
-  if(mMode==='add-contact'){contacts.push(d);notif('Contact ajouté.');}
-  else{contacts[mIdx]=d;notif('Contact mis à jour.');}
-  save();updateStats();renderContacts();renderDashboard();closeModal();
+  if(mMode==='add-contact'){contacts.push(d);await saveContactSupabase(d);notif('Contact ajouté.');}
+  else{contacts[mIdx]=d;await saveContactSupabase(d);notif('Contact mis à jour.');}
+  updateStats();renderContacts();renderDashboard();closeModal();
 }
 function deleteContact(idx){
   const c=contacts[idx];
   if(!confirm('Supprimer '+c.prenom+' '+c.nom+' ?'))return;
-  contacts.splice(idx,1);save();updateStats();renderContacts();renderDashboard();
+  if(c._id)await dbDelete('contacts',c._id);
+  contacts.splice(idx,1);updateStats();renderContacts();renderDashboard();
   notif(c.prenom+' '+c.nom+' supprimé.','amber');
 }
 function renderContacts(){
@@ -855,16 +861,16 @@ function saveBien(){
   if(!nom){alert('Nom du bien requis');return;}
   const d={nom,type:document.getElementById('m-btype').value,surface:document.getElementById('m-bsurf').value||'—',prix:document.getElementById('m-bprix').value||'—',ville:document.getElementById('m-bville').value||'—',statut:document.getElementById('m-bstatut').value};
   const oldNom=mMode==='edit-bien'?biens[mIdx]?.nom:null;
-  if(mMode==='add-bien'){biens.push(d);notif('Bien ajouté.');}
-  else{biens[mIdx]=d;notif('Bien mis à jour.');}
-  // Sync prix/surface/nom changes to finance auto-entries
+  if(mMode==='add-bien'){biens.push(d);await saveBienSupabase(d);notif('Bien ajouté.');}
+  else{biens[mIdx]=d;await saveBienSupabase(d);notif('Bien mis à jour.');}
   if(typeof finance!=='undefined') syncBienToFinance(d, oldNom);
-  save();updateStats();renderBiens();renderDashboard();closeModal();
+  updateStats();renderBiens();renderDashboard();closeModal();
 }
 function deleteBien(idx){
   const b=biens[idx];
   if(!confirm('Supprimer '+b.nom+' ?'))return;
-  biens.splice(idx,1);save();updateStats();renderBiens();
+  if(b._id)await dbDelete('biens',b._id);
+  biens.splice(idx,1);updateStats();renderBiens();
   notif(b.nom+' supprimé.','amber');
 }
 function renderBiens(){
@@ -1140,7 +1146,10 @@ function saveEvent(){
       calEvents[newKey][evIdx]=evObj;
     }
   }
-  saveEvents();renderAgenda();renderDashboard();closeModal();
+  // Save all events for this key to Supabase
+  const keyEvs=calEvents[newKey]||[];
+  for(const ev of keyEvs){await saveEventSupabase(newKey,ev);}
+  renderAgenda();renderDashboard();closeModal();
   notif(mMode==='add-event'?'Événement ajouté.':'Événement mis à jour.');
 }
 
@@ -1152,7 +1161,10 @@ function deleteEvent(key,idx){
   } else {
     delete calEvents[key];
   }
-  saveEvents();renderAgenda();renderDashboard();
+  // Delete from Supabase if has _id
+  const evToDelete=typeof idx!=='undefined'&&idx!=null?(calEvents[key]||[])[idx]:null;
+  if(evToDelete&&evToDelete._id)await dbDelete('evenements',evToDelete._id);
+  renderAgenda();renderDashboard();
   notif('Événement supprimé.','amber');
 }
 
@@ -1280,19 +1292,18 @@ function saveDoc(){
     date:dateEl?dateEl.value:'—',
     fichier:fichier
   };
-  if(mMode==='add-doc'){docs.push(d);}
-  else if(mMode==='edit-doc'&&mIdx!==null){docs[mIdx]=d;}
-  save();
+  if(mMode==='add-doc'){docs.push(d);await saveDocSupabase(d);}
+  else if(mMode==='edit-doc'&&mIdx!==null){docs[mIdx]=d;await saveDocSupabase(d);}
   closeModal();
-  // Navigate to docs page and refresh
   showPage('docs', null);
   notif(mMode==='add-doc'?'Document ajouté.':'Document mis à jour.');
 }
 function deleteDoc(idx){
   const d=docs[idx];
   if(!confirm('Supprimer "'+d.nom+'" ?'))return;
+  if(d._id)await dbDelete('documents',d._id);
   docs.splice(idx,1);
-  save();renderFolders();renderDocs();renderDashboard();
+  renderFolders();renderDocs();renderDashboard();
   notif('"'+d.nom+'" supprimé.','amber');
 }
 function renderDocs(){
@@ -1461,10 +1472,40 @@ function exportCSV(){
 }
 
 // === CLAUDE IA ===
+// ══ SUPABASE ══
+const SUPA_URL='https://eqfgzempuoeweeljwyaf.supabase.co';
+const SUPA_KEY='sb_publishable_0gj6hJ1zfsvO1M3_ytpI4A_1NY7qcye';
+const supa=window.supabase.createClient(SUPA_URL,SUPA_KEY);
+
 let APIKEY='';
-let currentUser={email:'',role:'user'};
+let currentUser={email:'',role:'gerant',nom:'',id:''};
+let supaSession=null;
 
 function isGeminiKey(k){return k&&k.startsWith('AIza');}
+
+// ── Supabase helpers ──────────────────────────────────────────────────────
+async function dbGet(table){
+  const {data,error}=await supa.from(table).select('*');
+  if(error)console.error('dbGet',table,error);
+  return data||[];
+}
+async function dbInsert(table,row){
+  const {data,error}=await supa.from(table).insert(row).select().single();
+  if(error)console.error('dbInsert',table,error);
+  return data;
+}
+async function dbUpdate(table,id,row){
+  const {error}=await supa.from(table).update(row).eq('id',id);
+  if(error)console.error('dbUpdate',table,error);
+}
+async function dbDelete(table,id){
+  const {error}=await supa.from(table).delete().eq('id',id);
+  if(error)console.error('dbDelete',table,error);
+}
+async function dbUpsert(table,row,conflict){
+  const {error}=await supa.from(table).upsert(row,{onConflict:conflict});
+  if(error)console.error('dbUpsert',table,error);
+}
 
 function stripMarkdown(txt){
   return txt
@@ -1553,27 +1594,34 @@ async function genererRelance(){
 }
 function copyText(id){navigator.clipboard?.writeText(document.getElementById(id).textContent).then(()=>notif('Copié !'));}
 
-// === LOGIN & API KEY ===
-// Default credentials (stored in localStorage, changeable)
-function getUsers(){
-  try{
-    const u=localStorage.getItem('im_users');
-    if(u) return JSON.parse(u);
-  }catch(e){}
-  // Default: one user
-  return [
-    {email:'gerant@immodesk.fr',  pwd:'Gerant2026!',   role:'gerant',     nom:'Thomas Dupont',   statut:'actif'},
-    {email:'agent@immodesk.fr',   pwd:'Agent2026!',    role:'agent',      nom:'Marie Lefebvre',  statut:'actif'},
-    {email:'secretaire@immodesk.fr', pwd:'Secr2026!',  role:'secretaire', nom:'Claire Martin',   statut:'actif'},
-    {email:'admin@immodesk.fr',   pwd:'ImmoAdmin2026!',role:'admin',      nom:'Admin Système',   statut:'actif'}
-  ];
+// === AUTH SUPABASE ===
+let authMode='login';
+
+function switchAuthTab(mode){
+  authMode=mode;
+  const isSignup=mode==='signup';
+  document.getElementById('tab-login').style.cssText='flex:1;background:none;border:none;cursor:pointer;padding:8px;font-size:13px;'+(mode==='login'?'font-weight:500;color:var(--blue);border-bottom:2px solid var(--blue)':'color:var(--text3);border-bottom:2px solid transparent');
+  document.getElementById('tab-signup').style.cssText='flex:1;background:none;border:none;cursor:pointer;padding:8px;font-size:13px;'+(isSignup?'font-weight:500;color:var(--blue);border-bottom:2px solid var(--blue)':'color:var(--text3);border-bottom:2px solid transparent');
+  document.getElementById('field-nom').style.display=isSignup?'block':'none';
+  document.getElementById('btn-forgot').style.display=isSignup?'none':'block';
+  const btn=document.getElementById('btn-auth');
+  if(btn){btn.style.display='flex';btn.innerHTML=isSignup?'<i class="ti ti-user-plus"></i> Créer mon compte':'<i class="ti ti-login"></i> Se connecter';btn.onclick=isSignup?doSignup:doLogin;}
+  document.getElementById('login-error').style.display='none';
+  document.getElementById('login-success').style.display='none';
+  document.getElementById('forgot-sent').style.display='none';
 }
 
 function showLoginError(msg){
   const el=document.getElementById('login-error');
   document.getElementById('login-error-msg').textContent=msg;
   el.style.display='block';
-  setTimeout(function(){el.style.display='none';},3500);
+  document.getElementById('login-success').style.display='none';
+  setTimeout(function(){el.style.display='none';},5000);
+}
+function showLoginSuccess(msg){
+  document.getElementById('login-success-msg').textContent=msg;
+  document.getElementById('login-success').style.display='block';
+  document.getElementById('login-error').style.display='none';
 }
 
 function toggleLoginPwd(){
@@ -1582,877 +1630,87 @@ function toggleLoginPwd(){
   b.innerHTML=i.type==='password'?'<i class="ti ti-eye"></i>':'<i class="ti ti-eye-off"></i>';
 }
 
-function toggleApiSection(){
-  const sec=document.getElementById('api-section');
-  const chev=document.getElementById('api-chevron');
-  const open=sec.style.display==='none';
-  sec.style.display=open?'block':'none';
-  chev.style.transform=open?'rotate(180deg)':'rotate(0deg)';
-}
-
-function doLogin(){
+async function doLogin(){
   const email=(document.getElementById('login-email').value||'').trim().toLowerCase();
   const pwd=document.getElementById('login-pwd').value||'';
-  if(!email){showLoginError('Veuillez entrer votre email.');return;}
-  if(!pwd){showLoginError('Veuillez entrer votre mot de passe.');return;}
-  const users=getUsers();
-  const match=users.find(function(u){return u.email.toLowerCase()===email&&u.pwd===pwd;});
-  if(!match){showLoginError('Email ou mot de passe incorrect.');return;}
-  // Show API key section only for admin
-  const loginKeyBtn=document.getElementById('login-key-btn');
-  if(loginKeyBtn) loginKeyBtn.style.display=(match.role==='admin'?'flex':'none');
-  // Save session
-  if(document.getElementById('login-remember').checked){
-    try{localStorage.setItem('im_session',JSON.stringify({email:email,role:match.role||'agent',nom:match.nom||email,ts:Date.now()}));}catch(e){}
-  }
-  currentUser={email:email,role:match.role||'agent',nom:match.nom||email};
-  // Save API key if provided
-  const apiKey=(document.getElementById('api-key-input').value||'').trim();
-  if(apiKey.startsWith('AIza')||apiKey.startsWith('sk-ant-')){
-    APIKEY=apiKey;
-    try{localStorage.setItem('im_key',apiKey);}catch(e){}
-  } else {
-    try{const k=localStorage.getItem('im_key')||'';if(k.startsWith('AIza')||k.startsWith('sk-ant-'))APIKEY=k;}catch(e){}
-  }
+  if(!email)return showLoginError('Veuillez entrer votre email.');
+  if(!pwd)return showLoginError('Veuillez entrer votre mot de passe.');
+  const btn=document.getElementById('btn-auth');
+  if(btn){btn.disabled=true;btn.textContent='Connexion...';}
+  const {data,error}=await supa.auth.signInWithPassword({email,password:pwd});
+  if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-login"></i> Se connecter';}
+  if(error)return showLoginError(error.message==='Invalid login credentials'?'Email ou mot de passe incorrect.':error.message);
+  await onAuthSuccess(data.user);
+}
+
+async function doSignup(){
+  const email=(document.getElementById('login-email').value||'').trim().toLowerCase();
+  const pwd=document.getElementById('login-pwd').value||'';
+  const nom=(document.getElementById('login-nom')?.value||'').trim();
+  if(!email)return showLoginError('Email requis.');
+  if(pwd.length<6)return showLoginError('Mot de passe : 6 caractères minimum.');
+  const btn=document.getElementById('btn-auth');
+  if(btn){btn.disabled=true;btn.textContent='Création...';}
+  const {data,error}=await supa.auth.signUp({email,password:pwd,options:{data:{nom:nom||email.split('@')[0]}}});
+  if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-user-plus"></i> Créer mon compte';}
+  if(error)return showLoginError(error.message);
+  if(data.user&&data.user.identities&&data.user.identities.length===0)return showLoginError('Cet email est déjà utilisé.');
+  showLoginSuccess('Compte créé ! Vérifiez votre email pour confirmer votre inscription.');
+  if(btn)btn.style.display='none';
+}
+
+async function doForgot(){
+  const email=(document.getElementById('login-email').value||'').trim().toLowerCase();
+  if(!email)return showLoginError("Entrez votre email d'abord.");
+  const {error}=await supa.auth.resetPasswordForEmail(email,{redirectTo:window.location.href});
+  if(error)return showLoginError(error.message);
+  document.getElementById('forgot-sent').style.display='block';
+  const btn=document.getElementById('btn-auth');
+  if(btn)btn.style.display='none';
+}
+
+async function onAuthSuccess(user){
+  supaSession=user;
+  const {data:profile}=await supa.from('profiles').select('*').eq('id',user.id).single();
+  currentUser={id:user.id,email:user.email,nom:profile?.nom||user.email.split('@')[0],role:profile?.role||'gerant'};
+  if(profile?.ai_key){APIKEY=profile.ai_key;}
+  else{try{const k=localStorage.getItem('im_key')||'';if(k.startsWith('AIza')||k.startsWith('sk-ant-'))APIKEY=k;}catch(e){}}
+  await loadAllData();
   document.getElementById('setup-screen').style.display='none';
   document.getElementById('main-app').style.display='flex';
   initApp();
 }
 
-function doLogout(){
-  try{localStorage.removeItem('im_session');}catch(e){}
+async function doLogout(){
+  await supa.auth.signOut();
+  supaSession=null;
+  currentUser={email:'',role:'gerant',nom:'',id:''};
+  contacts=[];biens=[];docs=[];calEvents={};finance={ventes:[],locations:[]};
   document.getElementById('main-app').style.display='none';
   document.getElementById('setup-screen').style.display='flex';
   document.getElementById('login-email').value='';
   document.getElementById('login-pwd').value='';
+  const btn=document.getElementById('btn-auth');
+  if(btn){btn.style.display='flex';}
+  document.getElementById('forgot-sent').style.display='none';
+  switchAuthTab('login');
 }
 
-function showKeySettings(){
-  if(currentUser.role!=='admin'){notif('Accès réservé à l\'administrateur.','amber');return;}
+async function showKeySettings(){
+  if(currentUser.role!=='admin'&&currentUser.role!=='gerant'){notif("Accès réservé au gérant ou admin.",'amber');return;}
   const cur=APIKEY?APIKEY.slice(0,14)+'...':'Non configurée';
-  const k=prompt('Clé API IA actuelle : '+cur+'\n\nNouvelle clé (sk-ant-...) :');
-  const kt=k?k.trim():'';if(kt&&(kt.startsWith('AIza')||kt.startsWith('sk-ant-'))){APIKEY=kt;try{localStorage.setItem('im_key',APIKEY);}catch(e){}notif('Clé API mise à jour.');}else if(k)notif('Clé invalide — doit commencer par AIzaSy... ou sk-ant-...','amber');
+  const k=prompt('Clé API IA actuelle : '+cur+'\n\nNouvelle clé (AIzaSy... ou sk-ant-...) :');
+  if(!k)return;
+  const kt=k.trim();
+  if(!kt.startsWith('AIza')&&!kt.startsWith('sk-ant-'))return notif('Clé invalide.','amber');
+  APIKEY=kt;
+  await supa.from('profiles').update({ai_key:kt}).eq('id',currentUser.id);
+  try{localStorage.setItem('im_key',kt);}catch(e){}
+  notif('Clé IA enregistrée.');
 }
 
-// === ADMIN ===
-const PAGES_ALL=['dashboard','contacts','biens','annonces','relances','agenda','docs','admin'];
-
-function renderAdmin(){
-  if(currentUser.role!=='admin')return;
-  document.getElementById('adm-c').textContent=contacts.length;
-  document.getElementById('adm-b').textContent=biens.length;
-  document.getElementById('adm-d').textContent=docs.length;
-  document.getElementById('adm-e').textContent=Object.keys(calEvents).length;
-  document.getElementById('adm-user').textContent=currentUser.email;
-  document.getElementById('adm-role').textContent=currentUser.role;
-  document.getElementById('adm-key').textContent=APIKEY?(isGeminiKey(APIKEY)?'Gemini — '+APIKEY.slice(0,12)+'...':'Claude — '+APIKEY.slice(0,12)+'...'):'Non configurée';
-  // Render users list
-  const users=getUsers();
-  const list=document.getElementById('adm-users-list');
-  list.innerHTML='';
-  users.forEach(function(u,i){
-    const row=document.createElement('div');
-    row.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-radius:var(--radius);margin-bottom:6px';
-    const info=document.createElement('div');
-    info.innerHTML='<span style="font-size:13px;font-weight:500">'+u.email+'</span>'
-      +' <span class="badge '+(u.role==='admin'?'badge-red':'badge-blue')+'" style="margin-left:8px;font-size:10px">'+( u.role||'user')+'</span>';
-    row.appendChild(info);
-    if(u.email!=='admin@immodesk.fr'){
-      const del=document.createElement('button');
-      del.className='btn btn-sm btn-danger';
-      del.innerHTML='<i class="ti ti-trash"></i>';
-      del.onclick=(function(idx){return function(){
-        if(!confirm('Supprimer cet utilisateur ?'))return;
-        const us=getUsers();us.splice(idx,1);
-        try{localStorage.setItem('im_users',JSON.stringify(us));}catch(e){}
-        renderAdmin();
-      };})(i);
-      row.appendChild(del);
-    }
-    list.appendChild(row);
-  });
-}
-
-function openAddUser(){
-  const html='<div class="form-row">'
-    +'<div><label>Email *</label><input id="new-email" type="email" placeholder="agent@agence.fr"></div>'
-    +'<div><label>Mot de passe *</label><input id="new-pwd" type="password" placeholder="motdepasse"></div>'
-    +'</div>'
-    +'<div class="form-group"><label>Rôle</label>'
-    +'<select id="new-role"><option value="user">Utilisateur</option><option value="admin">Administrateur</option></select></div>';
-  openModal('Ajouter un utilisateur',html,'add-user');
-}
-
-function saveUser(){
-  const email=(document.getElementById('new-email').value||'').trim().toLowerCase();
-  const pwd=document.getElementById('new-pwd').value||'';
-  const role=document.getElementById('new-role').value;
-  if(!email||!pwd){alert('Email et mot de passe requis');return;}
-  const users=getUsers();
-  if(users.find(function(u){return u.email.toLowerCase()===email;})){
-    alert('Cet email existe déjà');return;
-  }
-  users.push({email:email,pwd:pwd,role:role});
-  try{localStorage.setItem('im_users',JSON.stringify(users));}catch(e){}
-  closeModal();renderAdmin();
-  notif('Utilisateur ajouté.');
-}
-
-function exportAllData(){
-  const data={contacts:contacts,biens:biens,docs:docs.map(function(d){return Object.assign({},d,{fichier:d.fichier?'[fichier]':''});}),events:calEvents,exported:new Date().toISOString()};
-  const a=document.createElement('a');
-  a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(data,null,2));
-  a.download='immodesk_backup_'+new Date().toISOString().slice(0,10)+'.json';
-  a.click();
-  notif('Export téléchargé.');
-}
-
-function resetAll(){
-  ['im_c','im_b','im_d','im_events'].forEach(function(k){try{localStorage.removeItem(k);}catch(e){}});
-  location.reload();
-}
-
-// === PARAMETRES ===
-function loadParams(){
-  try{
-    const p=JSON.parse(localStorage.getItem('im_params'));
-    if(p){
-      // Migrate old format to tranches
-      if(!p.tranchesVente) p.tranchesVente=[{max:150000,taux:p.taux1||5},{max:300000,taux:p.taux2||4},{max:null,taux:p.taux3||3}];
-      if(!p.tranchesLoc) p.tranchesLoc=[{max:30,rate:p.rate1||12},{max:80,rate:p.rate2||10},{max:null,rate:p.rate3||8}];
-      return p;
-    }
-  }catch(e){}
-  return {
-    tranchesVente:[{max:150000,taux:5},{max:300000,taux:4},{max:null,taux:3}],
-    tranchesLoc:[{max:30,rate:12},{max:80,rate:10},{max:null,rate:8}],
-    objectif:50000
-  };
-}
-function saveParams(){try{localStorage.setItem('im_params',JSON.stringify(params));}catch(e){}}
-let params=loadParams();
-
-function renderParametres(){
-  renderTranchesVente();
-  renderTranchesLoc();
-  const oel=document.getElementById('param-objectif');
-  if(oel) oel.value=params.objectif||50000;
-  previewParamVente();
-  previewParamLoc();
-}
-
-function renderTranchesVente(){
-  const container=document.getElementById('param-tranches-vente');
-  if(!container)return;
-  const tranches=params.tranchesVente||[];
-  container.innerHTML='';
-  tranches.forEach(function(t,i){
-    const row=document.createElement('div');
-    row.style.cssText='display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:center;margin-bottom:8px;background:var(--surface2);border-radius:var(--radius);padding:10px 12px';
-    const isLast=(i===tranches.length-1);
-    row.innerHTML='<div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">'+(i===0?'Jusqu\'à':'De '+((tranches[i-1].max||0).toLocaleString('fr-FR'))+' € jusqu\'à')+'</label>'
-      +'<div style="display:flex;align-items:center;gap:6px">'
-      +(isLast?'<span style="font-size:13px;color:var(--text3)">Illimité</span>':'<input type="number" class="tv-max" data-idx="'+i+'" value="'+(t.max||'')+'" placeholder="300000" oninput="previewParamVente()" style="width:120px"> <span style="font-size:12px">€</span>')
-      +'</div></div>'
-      +'<div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">Taux d\'honoraires</label>'
-      +'<div style="display:flex;align-items:center;gap:6px"><input type="number" class="tv-taux" data-idx="'+i+'" value="'+(t.taux||0)+'" step="0.1" min="0" max="100" oninput="previewParamVente()" style="width:80px"> <span style="font-size:12px">%</span></div></div>'
-      +(tranches.length>1?'<button onclick="removeTranche(\'vente\','+i+')" class="btn btn-sm btn-danger" style="align-self:flex-end"><i class="ti ti-trash"></i></button>':'<div></div>');
-    container.appendChild(row);
-  });
-}
-
-function renderTranchesLoc(){
-  const container=document.getElementById('param-tranches-loc');
-  if(!container)return;
-  const tranches=params.tranchesLoc||[];
-  container.innerHTML='';
-  tranches.forEach(function(t,i){
-    const row=document.createElement('div');
-    row.style.cssText='display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:center;margin-bottom:8px;background:var(--surface2);border-radius:var(--radius);padding:10px 12px';
-    const isLast=(i===tranches.length-1);
-    row.innerHTML='<div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">'+(i===0?'Jusqu\'à':'De '+((tranches[i-1].max||0))+' m² jusqu\'à')+'</label>'
-      +'<div style="display:flex;align-items:center;gap:6px">'
-      +(isLast?'<span style="font-size:13px;color:var(--text3)">Illimité</span>':'<input type="number" class="tl-max" data-idx="'+i+'" value="'+(t.max||'')+'" placeholder="80" oninput="previewParamLoc()" style="width:100px"> <span style="font-size:12px">m²</span>')
-      +'</div></div>'
-      +'<div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">Tarif</label>'
-      +'<div style="display:flex;align-items:center;gap:6px"><input type="number" class="tl-rate" data-idx="'+i+'" value="'+(t.rate||0)+'" step="0.1" min="0" oninput="previewParamLoc()" style="width:80px"> <span style="font-size:12px">€/m²</span></div></div>'
-      +(tranches.length>1?'<button onclick="removeTranche(\'location\','+i+')" class="btn btn-sm btn-danger" style="align-self:flex-end"><i class="ti ti-trash"></i></button>':'<div></div>');
-    container.appendChild(row);
-  });
-}
-
-function addTranche(type){
-  if(type==='vente'){
-    const last=params.tranchesVente[params.tranchesVente.length-1];
-    const prevMax=params.tranchesVente.length>1?params.tranchesVente[params.tranchesVente.length-2].max:0;
-    last.max=prevMax?prevMax*2:300000;
-    params.tranchesVente.push({max:null,taux:last.taux});
-    renderTranchesVente();
-  } else {
-    const last=params.tranchesLoc[params.tranchesLoc.length-1];
-    const prevMax=params.tranchesLoc.length>1?params.tranchesLoc[params.tranchesLoc.length-2].max:0;
-    last.max=prevMax?prevMax*2:100;
-    params.tranchesLoc.push({max:null,rate:last.rate});
-    renderTranchesLoc();
-  }
-}
-
-function removeTranche(type,idx){
-  if(type==='vente'){
-    if(params.tranchesVente.length<=1)return;
-    params.tranchesVente.splice(idx,1);
-    params.tranchesVente[params.tranchesVente.length-1].max=null;
-    renderTranchesVente();
-  } else {
-    if(params.tranchesLoc.length<=1)return;
-    params.tranchesLoc.splice(idx,1);
-    params.tranchesLoc[params.tranchesLoc.length-1].max=null;
-    renderTranchesLoc();
-  }
-  previewParamVente();previewParamLoc();
-}
-
-function getTrancheTaux(prix){
-  const ts=params.tranchesVente||[];
-  for(var i=0;i<ts.length;i++){if(ts[i].max===null||prix<=ts[i].max)return ts[i].taux||0;}
-  return ts.length?ts[ts.length-1].taux:5;
-}
-function getTrancheRate(surface){
-  const ts=params.tranchesLoc||[];
-  for(var i=0;i<ts.length;i++){if(ts[i].max===null||surface<=ts[i].max)return ts[i].rate||0;}
-  return ts.length?ts[ts.length-1].rate:10;
-}
-
-function previewParamVente(){
-  const tranches=params.tranchesVente||[];
-  // Read live values from inputs
-  const liveTranches=tranches.map(function(t,i){
-    const maxEl=document.querySelector('.tv-max[data-idx="'+i+'"]');
-    const tauxEl=document.querySelector('.tv-taux[data-idx="'+i+'"]');
-    return {max:maxEl?parseFloat(maxEl.value)||null:t.max, taux:tauxEl?parseFloat(tauxEl.value)||0:t.taux};
-  });
-  const ex=[100000,250000,500000];
-  const preview=ex.map(function(p){
-    let t=liveTranches.length?liveTranches[liveTranches.length-1].taux:5;
-    for(var i=0;i<liveTranches.length;i++){if(liveTranches[i].max===null||p<=liveTranches[i].max){t=liveTranches[i].taux;break;}}
-    return p.toLocaleString('fr-FR')+'€ → '+(Math.round(p*t/100)).toLocaleString('fr-FR')+'€ ('+t+'%)';
-  }).join(' · ');
-  const el=document.getElementById('param-vente-preview');
-  if(el)el.textContent='Exemples : '+preview;
-}
-
-function previewParamLoc(){
-  const tranches=params.tranchesLoc||[];
-  const liveTranches=tranches.map(function(t,i){
-    const maxEl=document.querySelector('.tl-max[data-idx="'+i+'"]');
-    const rateEl=document.querySelector('.tl-rate[data-idx="'+i+'"]');
-    return {max:maxEl?parseFloat(maxEl.value)||null:t.max, rate:rateEl?parseFloat(rateEl.value)||0:t.rate};
-  });
-  const ex=[25,55,100];
-  const preview=ex.map(function(s){
-    let r=liveTranches.length?liveTranches[liveTranches.length-1].rate:10;
-    for(var i=0;i<liveTranches.length;i++){if(liveTranches[i].max===null||s<=liveTranches[i].max){r=liveTranches[i].rate;break;}}
-    return s+'m² → '+(Math.round(s*r)).toLocaleString('fr-FR')+'€ ('+r+'€/m²)';
-  }).join(' · ');
-  const el=document.getElementById('param-loc-preview');
-  if(el)el.textContent='Exemples : '+preview;
-}
-
-function saveParamVentes(){
-  const maxInputs=document.querySelectorAll('.tv-max');
-  const tauxInputs=document.querySelectorAll('.tv-taux');
-  params.tranchesVente=Array.from(tauxInputs).map(function(inp,i){
-    const maxEl=maxInputs[i];
-    return {max:maxEl?parseFloat(maxEl.value)||null:null, taux:parseFloat(inp.value)||0};
-  });
-  params.tranchesVente[params.tranchesVente.length-1].max=null;
-  saveParams();notif('Barème ventes enregistré.');
-}
-function saveParamLocs(){
-  const maxInputs=document.querySelectorAll('.tl-max');
-  const rateInputs=document.querySelectorAll('.tl-rate');
-  params.tranchesLoc=Array.from(rateInputs).map(function(inp,i){
-    const maxEl=maxInputs[i];
-    return {max:maxEl?parseFloat(maxEl.value)||null:null, rate:parseFloat(inp.value)||0};
-  });
-  params.tranchesLoc[params.tranchesLoc.length-1].max=null;
-  saveParams();notif('Barème locations enregistré.');
-}
-function saveParamObjectif(){
-  params.objectif=parseFloat(document.getElementById('param-objectif').value)||50000;
-  saveParams();notif('Objectif enregistré.');
-}
-
-// === FINANCE ===
-const FIN_STATUTS=['Payée','En attente','Annulée'];
-const FIN_BADGE={'Payée':'badge-green','En attente':'badge-amber','Annulée':'badge-red'};
-
-function loadFinance(){
-  try{
-    const f=localStorage.getItem('im_finance');
-    if(f) return JSON.parse(f);
-  }catch(e){}
-  return {ventes:[],locations:[],objectif:50000};
-}
-function saveFinance(){try{localStorage.setItem('im_finance',JSON.stringify(finance));}catch(e){}}
-let finance=loadFinance();
-let finTab='ventes';
-
-function finSwitchTab(tab,el){
-  finTab=tab;
-  document.getElementById('fin-tab-ventes').classList.toggle('hidden',tab!=='ventes');
-  document.getElementById('fin-tab-locations').classList.toggle('hidden',tab!=='locations');
-  const btnV=document.getElementById('fin-btn-ventes');
-  const btnL=document.getElementById('fin-btn-locations');
-  if(btnV){btnV.className=tab==='ventes'?'btn btn-primary':'btn';btnV.style.cssText='flex:1;justify-content:center;font-size:14px;padding:10px';}
-  if(btnL){btnL.className=tab==='locations'?'btn btn-primary':'btn';btnL.style.cssText='flex:1;justify-content:center;font-size:14px;padding:10px';}
-  renderFinance();
-}
-
-function finMontant(c){
-  if(c.com_calc&&parseFloat(c.com_calc)>0) return Math.round(parseFloat(c.com_calc));
-  if(c.type==='vente') return calcVenteCommission(parseFloat(c.prix)||0);
-  return calcLocCommission(parseFloat(c.surface)||0);
-}
-
-function syncBienToFinance(b, oldNom){
-  const prix=parseFloat((b.prix||'').replace(/[^0-9.]/g,''))||0;
-  const surface=parseFloat(b.surface)||0;
-  const loyer=prix;
-  // Update existing auto-entries matching this bien (by old name or current name)
-  const matchName=oldNom||b.nom;
-  finance.ventes.forEach(function(v){
-    if(v._auto&&v.bien===matchName){
-      v.bien=b.nom; // update name if changed
-      if(!v.com_calc||parseFloat(v.com_calc)===0) v.prix=String(prix); // update prix only if no manual override
-    }
-  });
-  finance.locations.forEach(function(l){
-    if(l._auto&&l.bien===matchName){
-      l.bien=b.nom;
-      if(!l.com_calc||parseFloat(l.com_calc)===0){
-        l.loyer=String(loyer);
-        l.surface=String(surface);
-      }
-    }
-  });
-  saveFinance();
-}
-
-function autoImportBiens(){
-  const venduStatuts=['Vendu','Acte final'];
-  const locStatuts=['En location'];
-
-  // Remove auto-entries whose bien no longer has the right statut
-  finance.ventes=finance.ventes.filter(function(v){
-    if(!v._auto) return true; // keep manual entries always
-    const b=biens.find(function(b){return b.nom===v.bien;});
-    return b&&venduStatuts.includes(b.statut);
-  });
-  finance.locations=finance.locations.filter(function(l){
-    if(!l._auto) return true;
-    const b=biens.find(function(b){return b.nom===l.bien;});
-    return b&&locStatuts.includes(b.statut);
-  });
-
-  // Add new auto-entries for biens that qualify
-  biens.forEach(function(b){
-    if(venduStatuts.includes(b.statut)){
-      const already=finance.ventes.find(function(v){return v.bien===b.nom&&v._auto;});
-      if(!already){
-        const prix=parseFloat((b.prix||'').replace(/[^0-9.]/g,''))||0;
-        finance.ventes.push({
-          type:'vente',bien:b.nom,agent:currentUser.nom||currentUser.email,
-          date:new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}),
-          prix:String(prix),statut:'En attente',notes:'Importé automatiquement',com_calc:'',_auto:true
-        });
-      }
-    }
-    if(locStatuts.includes(b.statut)){
-      const already=finance.locations.find(function(l){return l.bien===b.nom&&l._auto;});
-      if(!already){
-        const loyer=parseFloat((b.prix||'').replace(/[^0-9.]/g,''))||0;
-        const surface=parseFloat(b.surface)||0;
-        finance.locations.push({
-          type:'location',bien:b.nom,agent:currentUser.nom||currentUser.email,
-          date:new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}),
-          loyer:String(loyer),surface:String(surface),statut:'En attente',notes:'Importé automatiquement',com_calc:'',_auto:true
-        });
-      }
-    }
-  });
-  saveFinance();
-}
-
-function renderFinance(){
-  autoImportBiens();
-  const ventes=finance.ventes||[];
-  const locations=finance.locations||[];
-  const now=new Date();
-  const curMonth=now.getMonth();
-  const curYear=now.getFullYear();
-  const fmt=function(n){return Math.round(n).toLocaleString('fr-FR')+' €';};
-  function parseDate(str){if(!str)return null;const p=str.split('/');if(p.length===3)return new Date(parseInt(p[2]),parseInt(p[1])-1,parseInt(p[0]));return null;}
-  function isThisMonth(str){const d=parseDate(str);return d&&d.getMonth()===curMonth&&d.getFullYear()===curYear;}
-  function isThisYear(str){const d=parseDate(str);return d&&d.getFullYear()===curYear;}
-  const ventesOk=ventes.filter(function(v){return v.statut!=='Annulée';});
-  const ventesMois=ventesOk.filter(function(v){return isThisMonth(v.date);});
-  const ventesAnnee=ventesOk.filter(function(v){return isThisYear(v.date);});
-  const totalVentesMois=ventesMois.reduce(function(s,v){return s+finMontant(v);},0);
-  const totalVentesAnnee=ventesAnnee.reduce(function(s,v){return s+finMontant(v);},0);
-  const locsOk=locations.filter(function(l){return l.statut!=='Annulée';});
-  const locsMois=locsOk.filter(function(l){return isThisMonth(l.date);});
-  const locsAnnee=locsOk.filter(function(l){return isThisYear(l.date);});
-  const totalLocsMois=locsMois.reduce(function(s,l){return s+finMontant(l);},0);
-  const totalLocsAnnee=locsAnnee.reduce(function(s,l){return s+finMontant(l)*12;},0);
-  const caMois=totalVentesMois+totalLocsMois;
-  const caAnnee=totalVentesAnnee+totalLocsAnnee;
-  const objectif=params.objectif||finance.objectif||50000;
-  const pct=Math.min(100,Math.round(caAnnee/objectif*100));
-  const set=function(id,v){const el=document.getElementById(id);if(el)el.textContent=v;};
-  set('fin-ca-mois',fmt(caMois));
-  set('fin-ca-mois-sub',ventesMois.length+' vente(s) · '+locsMois.length+' loc.');
-  set('fin-ventes-mois',fmt(totalVentesMois));
-  set('fin-ventes-mois-sub',ventesMois.length+' transaction(s)');
-  set('fin-loc-mois',fmt(totalLocsMois));
-  set('fin-loc-mois-sub',locsMois.length+' contrat(s)');
-  set('fin-ca-annee',fmt(caAnnee));
-  set('fin-ca-annee-sub',pct+'% objectif');
-  set('fin-ventes-annee',fmt(totalVentesAnnee));
-  set('fin-ventes-annee-sub',ventesAnnee.length+' vente(s)');
-  set('fin-loc-annee',fmt(totalLocsAnnee));
-  set('fin-loc-annee-sub','(loyers × 12) · '+locsAnnee.length);
-  set('fin-objectif-label',fmt(caAnnee)+' / '+fmt(objectif));
-  set('fin-pct-badge',pct+'%');
-  const bar=document.getElementById('fin-progress-bar');
-  if(bar)bar.style.width=pct+'%';
-
-
-  // Ventes table
-  document.getElementById('fin-ventes-nb').textContent=ventes.length;
-  const vtBody=document.getElementById('fin-ventes-body');
-  if(vtBody){
-    vtBody.innerHTML='';
-    if(!ventes.length){
-      vtBody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:1.5rem">Aucune commission de vente</td></tr>';
-    } else {
-      ventes.forEach(function(c,i){
-        const montant=finMontant(c);
-        const badge=FIN_BADGE[c.statut]||'badge-blue';
-        const tr=document.createElement('tr');
-        const prix=parseFloat(c.prix)||0;
-        const tUsed=prix<=150000?(c.taux1||5):prix<=300000?(c.taux2||4):(c.taux3||3);
-        tr.innerHTML='<td><div style="font-weight:500">'+(c.bien||'—')+'</div><div style="font-size:11px;color:var(--text3)">'+(c.notes||'')+'</div></td>'
-          +'<td>'+(c.agent||'—')+'</td>'
-          +'<td>'+(c.prix?(parseFloat(c.prix).toLocaleString('fr-FR')+' €'):'—')+'</td>'
-          +'<td><span style="font-size:11px">'+tUsed+'%</span></td>'
-          +'<td style="font-weight:600;color:var(--green)">'+montant.toLocaleString('fr-FR')+' €</td>'
-          +'<td style="white-space:nowrap">'+(c.date||'—')+'</td>'
-          +'<td><span class="badge '+badge+'">'+c.statut+'</span></td>'
-          +'<td></td>';
-        const actCell=tr.querySelector('td:last-child');
-        const actWrap=document.createElement('div');
-        actWrap.className='actions-cell';
-        const ed=document.createElement('button');
-        ed.className='btn btn-sm'; ed.title='Modifier';
-        ed.innerHTML='<i class="ti ti-edit"></i>';
-        ed.onclick=(function(idx){return function(){openEditCommission('vente',idx);};})(i);
-        actWrap.appendChild(ed);
-        const rm=document.createElement('button');
-        rm.className='btn btn-sm btn-danger'; rm.title='Supprimer';
-        rm.innerHTML='<i class="ti ti-trash"></i>';
-        rm.onclick=(function(idx){return function(){deleteCommission('vente',idx);};})(i);
-        actWrap.appendChild(rm);
-        actCell.appendChild(actWrap);
-        vtBody.appendChild(tr);
-      });
-    }
-  }
-
-  // Locations table
-  document.getElementById('fin-loc-nb').textContent=locations.length;
-  const lcBody=document.getElementById('fin-loc-body');
-  if(lcBody){
-    lcBody.innerHTML='';
-    if(!locations.length){
-      lcBody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:1.5rem">Aucune commission de location</td></tr>';
-    } else {
-      locations.forEach(function(c,i){
-        const montant=finMontant(c);
-        const badge=FIN_BADGE[c.statut]||'badge-blue';
-        const tr=document.createElement('tr');
-        const surf=parseFloat(c.surface)||0;
-        const rUsed=surf<30?(c.rate1||12):surf<=80?(c.rate2||10):(c.rate3||8);
-        tr.innerHTML='<td><div style="font-weight:500">'+(c.bien||'—')+'</div><div style="font-size:11px;color:var(--text3)">'+(c.notes||'')+'</div></td>'
-          +'<td>'+(c.agent||'—')+'</td>'
-          +'<td>'+(c.surface?c.surface+' m²':'—')+'</td>'
-          +'<td>'+(c.loyer?(parseFloat(c.loyer).toLocaleString('fr-FR')+' €/mois'):'—')+'</td>'
-          +'<td style="font-weight:600;color:var(--green)">'+montant.toLocaleString('fr-FR')+' €</td>'
-          +'<td style="white-space:nowrap">'+(c.date||'—')+'</td>'
-          +'<td><span class="badge '+badge+'">'+c.statut+'</span></td>'
-          +'<td></td>';
-        const actCell=tr.querySelector('td:last-child');
-        const actWrap=document.createElement('div');
-        actWrap.className='actions-cell';
-        const ed=document.createElement('button');
-        ed.className='btn btn-sm'; ed.title='Modifier';
-        ed.innerHTML='<i class="ti ti-edit"></i>';
-        ed.onclick=(function(idx){return function(){openEditCommission('location',idx);};})(i);
-        actWrap.appendChild(ed);
-        const rm=document.createElement('button');
-        rm.className='btn btn-sm btn-danger'; rm.title='Supprimer';
-        rm.innerHTML='<i class="ti ti-trash"></i>';
-        rm.onclick=(function(idx){return function(){deleteCommission('location',idx);};})(i);
-        actWrap.appendChild(rm);
-        actCell.appendChild(actWrap);
-        lcBody.appendChild(tr);
-      });
-    }
-  }
-}
-
-function commissionForm(type, c){
-  c=c||{};
-  const today=new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
-  const agentOpts=getUsers().filter(function(u){return ['agent','gerant'].includes(u.role);})
-    .map(function(u){return '<option value="'+(u.nom||u.email)+'"'+((c.agent===(u.nom||u.email))?' selected':'')+'>'+( u.nom||u.email)+'</option>';}).join('');
-  // For ventes: include price in option label; for locations: include surface
-  const bienOptsVente='<option value="">— Sélectionner —</option>'+biens.filter(function(b){return b.statut!=='En location';}).map(function(b){
-    return '<option value="'+b.nom+'" data-prix="'+b.prix+'"'+(c.bien===b.nom?' selected':'')+'>'+b.nom+(b.prix?' — '+b.prix:'')+'</option>';
-  }).join('');
-  const bienOptsLoc='<option value="">— Sélectionner —</option>'+biens.filter(function(b){return b.statut!=='En vente'&&b.statut!=='Vendu';}).map(function(b){
-    return '<option value="'+b.nom+'" data-surface="'+b.surface+'" data-prix="'+b.prix+'"'+(c.bien===b.nom?' selected':'')+'>'+b.nom+(b.surface?' — '+b.surface+'m²':'')+'</option>';
-  }).join('');
-  const statutOpts=FIN_STATUTS.map(function(s){return '<option'+(( c.statut||'En attente')===s?' selected':'')+'>'+s+'</option>';}).join('');
-
-  if(type==='vente'){
-    return '<div class="form-group"><label>Bien vendu</label><select id="fc-bien" onchange="onBienVenteChange()">'+bienOptsVente+'</select></div>'
-      +'<div class="form-row">'
-      +'<div><label>Agent responsable</label><select id="fc-agent">'+agentOpts+'</select></div>'
-      +'<div><label>Date</label><input id="fc-date" value="'+(c.date||today)+'" placeholder="jj/mm/aaaa"></div>'
-      +'</div>'
-      +'<div style="background:var(--blue-bg);color:var(--blue-text);border-radius:var(--radius);padding:8px 12px;font-size:12px;margin-bottom:12px">'
-      +'<i class="ti ti-info-circle" style="vertical-align:-2px;margin-right:4px"></i>'
-      +'Barème actuel : jusqu\'à 150k → '+(params.taux1||5)+'% · 150k–300k → '+(params.taux2||4)+'% · +300k → '+(params.taux3||3)+'%'
-      +'<span style="float:right"><a href="#" onclick="showPage(\'parametres\',null);return false;" style="color:inherit">Modifier →</a></span></div>'
-      +'<div class="form-row">'
-      +'<div><label>Prix de vente réel (€) *</label><input id="fc-prix" type="number" value="'+(c.prix||'')+'" placeholder="350 000" oninput="updateVentePreview()"></div>'
-      +'<div><label>Commission calculée (€)</label><input id="fc-com-calc" type="number" value="'+(c.com_calc||'')+'" placeholder="Calculée auto ou saisie manuelle"></div>'
-      +'</div>'
-      +'<div id="fc-preview" style="background:var(--green-bg);color:var(--green-text);border-radius:var(--radius);padding:10px 14px;font-size:13px;margin-bottom:12px;display:none"></div>'
-      +'<div class="form-row">'
-      +'<div><label>Statut</label><select id="fc-statut">'+statutOpts+'</select></div>'
-      +'<div><label>Notes</label><input id="fc-notes" value="'+(c.notes||'')+'" placeholder="Acheteur, remarques..."></div>'
-      +'</div>';
-  } else {
-    return '<div class="form-group"><label>Bien loué</label><select id="fc-bien" onchange="onBienLocChange()">'+bienOptsLoc+'</select></div>'
-      +'<div class="form-row">'
-      +'<div><label>Agent responsable</label><select id="fc-agent">'+agentOpts+'</select></div>'
-      +'<div><label>Date</label><input id="fc-date" value="'+(c.date||today)+'" placeholder="jj/mm/aaaa"></div>'
-      +'</div>'
-      +'<div style="background:var(--blue-bg);color:var(--blue-text);border-radius:var(--radius);padding:8px 12px;font-size:12px;margin-bottom:12px">'
-      +'<i class="ti ti-info-circle" style="vertical-align:-2px;margin-right:4px"></i>'
-      +'Barème actuel : <30m² → '+(params.rate1||12)+'€/m² · 30–80m² → '+(params.rate2||10)+'€/m² · +80m² → '+(params.rate3||8)+'€/m²'
-      +'<span style="float:right"><a href="#" onclick="showPage(\'parametres\',null);return false;" style="color:inherit">Modifier →</a></span></div>'
-      +'<div class="form-row">'
-      +'<div><label>Surface (m²) *</label><input id="fc-surface" type="number" value="'+(c.surface||'')+'" placeholder="65" oninput="updateLocPreview()"></div>'
-      +'<div><label>Loyer mensuel (€)</label><input id="fc-loyer" type="number" value="'+(c.loyer||'')+'" placeholder="900"></div>'
-      +'</div>'
-      +'<div class="form-row">'
-      +'<div><label>Commission calculée (€)</label><input id="fc-com-calc" type="number" value="'+(c.com_calc||'')+'" placeholder="Calculée auto ou saisie manuelle"></div>'
-      +'<div><label>Statut</label><select id="fc-statut">'+statutOpts+'</select></div>'
-      +'</div>'
-      +'<div id="fc-preview" style="background:var(--green-bg);color:var(--green-text);border-radius:var(--radius);padding:10px 14px;font-size:13px;margin-bottom:12px;display:none"></div>'
-      +'<div class="form-group"><label>Notes</label><input id="fc-notes" value="'+(c.notes||'')+'" placeholder="Locataire, remarques..."></div>';
-  }
-}
-
-function openAddCommission(type){
-  openModal(type==='vente'?'Nouvelle commission vente':'Nouvelle commission location', commissionForm(type), 'add-commission-'+type);
-  setTimeout(function(){
-    attachFinancePreview(type);
-    document.querySelector('#modal-body select, #modal-body input')?.focus();
-  },80);
-}
-function openEditCommission(type,idx){
-  const c=type==='vente'?finance.ventes[idx]:finance.locations[idx];
-  openModal(type==='vente'?'Modifier commission vente':'Modifier commission location', commissionForm(type,c), 'edit-commission-'+type, idx);
-  setTimeout(function(){attachFinancePreview(type);},80);
-}
-
-function attachFinancePreview(type){
-  // attach listeners for taux/rate changes to trigger preview
-  // barème from global params, no local inputs
-  if(type==='vente') updateVentePreview();
-  else updateLocPreview();
-}
-
-function calcVenteCommission(prix){
-  return Math.round(prix*getTrancheTaux(prix)/100);
-}
-function calcLocCommission(surface){
-  return Math.round(surface*getTrancheRate(surface));
-}
-
-function updateVentePreview(){
-  const prix=parseFloat(document.getElementById('fc-prix')?.value||0);
-  const preview=document.getElementById('fc-preview');
-  const calcEl=document.getElementById('fc-com-calc');
-  if(!prix){if(preview)preview.style.display='none';return;}
-  const com=calcVenteCommission(prix);
-  if(calcEl&&!calcEl._manual) calcEl.value=com;
-  if(preview){
-    const t1=params.taux1||5, t2=params.taux2||4, t3=params.taux3||3;
-    const taux=prix<=150000?t1:prix<=300000?t2:t3;
-    preview.style.display='block';
-    preview.innerHTML='<i class="ti ti-calculator" style="vertical-align:-2px;margin-right:6px"></i>'
-      +'<b>Commission : '+com.toLocaleString('fr-FR')+' €</b>'
-      +' <span style="opacity:.7">(taux appliqué : '+taux+'%)</span>';
-  }
-}
-
-function updateLocPreview(){
-  const surface=parseFloat(document.getElementById('fc-surface')?.value||0);
-  const preview=document.getElementById('fc-preview');
-  const calcEl=document.getElementById('fc-com-calc');
-  if(!surface){if(preview)preview.style.display='none';return;}
-  const com=calcLocCommission(surface);
-  if(calcEl&&!calcEl._manual) calcEl.value=com;
-  if(preview){
-    const r1=params.rate1||12, r2=params.rate2||10, r3=params.rate3||8;
-    const rate=surface<30?r1:surface<=80?r2:r3;
-    preview.style.display='block';
-    preview.innerHTML='<i class="ti ti-calculator" style="vertical-align:-2px;margin-right:6px"></i>'
-      +'<b>Commission : '+com.toLocaleString('fr-FR')+' €</b>'
-      +' <span style="opacity:.7">('+rate+' €/m² × '+surface+' m²)</span>';
-  }
-}
-
-function onBienVenteChange(){
-  const sel=document.getElementById('fc-bien');
-  if(!sel)return;
-  const opt=sel.options[sel.selectedIndex];
-  const prixStr=(opt.getAttribute('data-prix')||'').replace(/[^0-9.]/g,'');
-  const prix=parseFloat(prixStr)||0;
-  if(prix){
-    const prixEl=document.getElementById('fc-prix');
-    if(prixEl&&!prixEl.value) prixEl.value=Math.round(prix);
-    updateVentePreview();
-  }
-}
-
-function onBienLocChange(){
-  const sel=document.getElementById('fc-bien');
-  if(!sel)return;
-  const opt=sel.options[sel.selectedIndex];
-  const surface=parseFloat(opt.getAttribute('data-surface')||0);
-  const prixStr=(opt.getAttribute('data-prix')||'').replace(/[^0-9.]/g,'');
-  const loyer=parseFloat(prixStr)||0;
-  if(surface){
-    const surfEl=document.getElementById('fc-surface');
-    if(surfEl&&!surfEl.value) surfEl.value=surface;
-    updateLocPreview();
-  }
-  if(loyer){
-    const loyerEl=document.getElementById('fc-loyer');
-    if(loyerEl&&!loyerEl.value) loyerEl.value=Math.round(loyer);
-  }
-}
-
-function saveCommission(){
-  const type=mMode.replace('add-commission-','').replace('edit-commission-','');
-  const g=function(id){return (document.getElementById(id)||{}).value||'';};
-  let c={
-    type:type,
-    bien:g('fc-bien'),agent:g('fc-agent'),date:g('fc-date'),
-    statut:g('fc-statut')||'En attente',notes:g('fc-notes'),
-    com_calc:g('fc-com-calc')
-  };
-  if(type==='vente'){
-    c.prix=g('fc-prix');
-    c.taux1=g('fc-taux1')||'5'; c.taux2=g('fc-taux2')||'4'; c.taux3=g('fc-taux3')||'3';
-    if(!c.prix||c.prix==='0'){alert('Prix de vente requis');return;}
-    if(mMode.startsWith('add')){finance.ventes.push(c);}
-    else{finance.ventes[mIdx]=c;}
-  } else {
-    c.surface=g('fc-surface');
-    c.loyer=g('fc-loyer');
-    c.rate1=g('fc-rate1')||'12'; c.rate2=g('fc-rate2')||'10'; c.rate3=g('fc-rate3')||'8';
-    if(!c.surface||c.surface==='0'){alert('Surface requise');return;}
-    if(mMode.startsWith('add')){finance.locations.push(c);}
-    else{finance.locations[mIdx]=c;}
-  }
-  saveFinance();renderFinance();closeModal();
-  notif(mMode.startsWith('add')?'Commission ajoutée.':'Commission mise à jour.');
-}
-
-function deleteCommission(type,idx){
-  const arr=type==='vente'?finance.ventes:finance.locations;
-  if(!confirm('Supprimer cette commission ?'))return;
-  arr.splice(idx,1);
-  saveFinance();renderFinance();
-  notif('Commission supprimée.','amber');
-}
-
-// === ÉQUIPE ===
-function getEquipe(){
-  try{
-    const e=localStorage.getItem('im_equipe');
-    if(e) return JSON.parse(e);
-  }catch(err){}
-  return getUsers().filter(function(u){return u.role!=='admin';});
-}
-function saveEquipe(eq){try{localStorage.setItem('im_equipe',JSON.stringify(eq));}catch(e){}}
-
-function renderEquipe(){
-  const equipe=getEquipe();
-  const el=document.getElementById('equipe-body');
-  const cnt=document.getElementById('equipe-count');
-  if(!el)return;
-  cnt.textContent=equipe.length;
-  el.innerHTML='';
-  equipe.forEach(function(m,i){
-    const tr=document.createElement('tr');
-    const role=m.role||'agent';
-    const badge=ROLE_BADGES[role]||'badge-blue';
-    const label=ROLE_LABELS[role]||role;
-    const statutBadge=m.statut==='actif'?'badge-green':'badge-amber';
-
-    // Nom
-    const tdNom=document.createElement('td');
-    const av=document.createElement('div');
-    av.style.cssText='display:flex;align-items:center;gap:8px';
-    const initials=(m.nom||m.email||'?').split(' ').map(function(w){return w[0];}).join('').slice(0,2).toUpperCase();
-    av.innerHTML='<span class="avatar">'+initials+'</span><div>'
-      +'<div style="font-weight:500">'+(m.nom||'—')+'</div>'
-      +'</div>';
-    tdNom.appendChild(av);
-    tr.appendChild(tdNom);
-
-    // Email
-    const tdEmail=document.createElement('td');
-    tdEmail.style.color='var(--text2)';
-    tdEmail.textContent=m.email||'—';
-    tr.appendChild(tdEmail);
-
-    // Rôle
-    const tdRole=document.createElement('td');
-    tdRole.innerHTML='<span class="badge '+badge+'">'+label+'</span>';
-    tr.appendChild(tdRole);
-
-    // Statut
-    const tdStatut=document.createElement('td');
-    tdStatut.innerHTML='<span class="badge '+statutBadge+'">'+(m.statut||'actif')+'</span>';
-    tr.appendChild(tdStatut);
-
-    // Actions
-    const tdAct=document.createElement('td');
-    const wrap=document.createElement('div');
-    wrap.className='actions-cell';
-
-    const edit=document.createElement('button');
-    edit.className='btn btn-sm';
-    edit.title='Modifier';
-    edit.innerHTML='<i class="ti ti-edit"></i>';
-    edit.onclick=(function(idx){return function(){openEditMembre(idx);};})(i);
-    wrap.appendChild(edit);
-
-    if(m.email!=='gerant@immodesk.fr'){
-      const del=document.createElement('button');
-      del.className='btn btn-sm btn-danger';
-      del.title='Supprimer';
-      del.innerHTML='<i class="ti ti-trash"></i>';
-      del.onclick=(function(idx){return function(){
-        const eq=getEquipe();
-        if(!confirm('Retirer '+eq[idx].nom+' de l\'équipe ?'))return;
-        eq.splice(idx,1);
-        saveEquipe(eq);
-        // Also remove from users
-        const us=getUsers().filter(function(u){return u.email!==eq[idx]&&u.email!==eq[idx-1]&&true;});
-        renderEquipe();
-        notif('Membre retiré.','amber');
-      };})(i);
-      wrap.appendChild(del);
-    }
-    tdAct.appendChild(wrap);
-    tr.appendChild(tdAct);
-    el.appendChild(tr);
-  });
-}
-
-function membreForm(m){
-  m=m||{};
-  const roles=['gerant','agent','secretaire'];
-  const statuts=['actif','inactif','congé'];
-  return '<div class="form-row">'
-    +'<div><label>Prénom et Nom *</label><input id="mb-nom" value="'+(m.nom||'')+'" placeholder="Marie Dupont"></div>'
-    +'<div><label>Email *</label><input id="mb-email" type="email" value="'+(m.email||'')+'" placeholder="marie@agence.fr"></div>'
-    +'</div>'
-    +'<div class="form-row">'
-    +'<div><label>Mot de passe '+(m.email?'(laisser vide = inchangé)':'*')+'</label>'
-    +'<div style="position:relative"><input id="mb-pwd" type="password" placeholder="motdepasse" style="padding-right:38px">'
-    +'<button type="button" id="mb-pwd-eye" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px"><i class="ti ti-eye"></i></button>'
-    +'</div></div>'
-    +'<div><label>Rôle</label><select id="mb-role">'
-    +roles.map(function(r){return '<option value="'+r+'"'+(m.role===r?' selected':'')+'>'+ROLE_LABELS[r]+'</option>';}).join('')
-    +'</select></div>'
-    +'</div>'
-    +'<div class="form-group"><label>Statut</label><select id="mb-statut">'
-    +statuts.map(function(s){return '<option value="'+s+'"'+(( m.statut||'actif')===s?' selected':'')+'>'+s.charAt(0).toUpperCase()+s.slice(1)+'</option>';}).join('')
-    +'</select></div>';
-}
-
-function openAddMembre(){
-  openModal('Ajouter un membre',membreForm(),'add-membre');
-  setTimeout(function(){
-    document.getElementById('mb-nom')?.focus();
-    attachPwdToggle();
-  },60);
-}
-function openEditMembre(idx){
-  openModal('Modifier le membre',membreForm(getEquipe()[idx]),'edit-membre',idx);
-  setTimeout(function(){
-    document.getElementById('mb-nom')?.focus();
-    attachPwdToggle();
-  },60);
-}
-function attachPwdToggle(){
-  const btn=document.getElementById('mb-pwd-eye');
-  const inp=document.getElementById('mb-pwd');
-  if(!btn||!inp)return;
-  btn.onclick=function(){
-    inp.type=inp.type==='password'?'text':'password';
-    btn.innerHTML=inp.type==='password'?'<i class="ti ti-eye"></i>':'<i class="ti ti-eye-off"></i>';
-  };
-}
-function saveMembre(){
-  const nom=(document.getElementById('mb-nom').value||'').trim();
-  const email=(document.getElementById('mb-email').value||'').trim().toLowerCase();
-  const pwd=document.getElementById('mb-pwd').value||'';
-  const role=document.getElementById('mb-role').value;
-  const statut=document.getElementById('mb-statut').value;
-  if(!nom||!email){alert('Nom et email requis');return;}
-  const eq=getEquipe();
-  const users=getUsers();
-  if(mMode==='add-membre'){
-    if(!pwd){alert('Mot de passe requis pour un nouveau membre');return;}
-    if(eq.find(function(m){return m.email===email;})){alert('Cet email existe déjà');return;}
-    const newMembre={nom:nom,email:email,pwd:pwd,role:role,statut:statut};
-    eq.push(newMembre);
-    users.push(newMembre);
-  } else {
-    const m=eq[mIdx];
-    m.nom=nom; m.email=email; m.role=role; m.statut=statut;
-    if(pwd)m.pwd=pwd;
-    const ui=users.findIndex(function(u){return u.email===email;});
-    if(ui>=0){users[ui]=Object.assign({},users[ui],m);}
-    else{users.push(m);}
-  }
-  saveEquipe(eq);
-  try{localStorage.setItem('im_users',JSON.stringify(users));}catch(e){}
-  renderEquipe();closeModal();
-  notif(mMode==='add-membre'?'Membre ajouté.':'Membre mis à jour.');
-}
+function getUsers(){return[];}
+function toggleApiSection(){}
 
 // === PWA ===
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
@@ -2479,9 +1737,9 @@ function initApp(){
   // Update AI provider badges (multiple pages)
   const providerLabel=APIKEY?(isGeminiKey(APIKEY)?'Gemini IA':'Claude IA'):'Clé IA non configurée';
   document.querySelectorAll('.ai-badge').forEach(function(b){b.textContent=providerLabel;});
-  // Show API key button only for admin
+  // Show API key button for admin and gerant
   const keyBtn=document.getElementById('btn-api-key');
-  if(keyBtn) keyBtn.style.display=(currentUser.role==='admin'?'flex':'none');
+  if(keyBtn) keyBtn.style.display=(currentUser.role==='admin'||currentUser.role==='gerant'?'flex':'none');
   const role=currentUser.role||'agent';
   const isAdmin=role==='admin';
   const isGerant=role==='gerant'||isAdmin;
@@ -2513,26 +1771,113 @@ function initApp(){
   }
 }
 function resetDocs(){
-  // Clear corrupted docs from localStorage
-  try{localStorage.removeItem('im_d');}catch(e){}
   docs=[];
-  save();
-  if(document.getElementById('docs-body')) {renderFolders();renderDocs();}
+  supa.from('documents').delete().eq('user_id',currentUser.id||'').then(function(){});
+  if(document.getElementById('docs-body')){renderFolders();renderDocs();}
   notif('Documents réinitialisés.');
 }
-(function(){
-  try{
-    const sess=JSON.parse(localStorage.getItem('im_session')||'null');
-    if(sess&&sess.email&&(Date.now()-sess.ts)<30*24*60*60*1000){
-      currentUser={email:sess.email,role:sess.role||'agent',nom:sess.nom||sess.email};
-      try{const k=localStorage.getItem('im_key')||'';if(k.startsWith('AIza')||k.startsWith('sk-ant-'))APIKEY=k;}catch(e){}
-      document.getElementById('setup-screen').style.display='none';
-      document.getElementById('main-app').style.display='flex';
-      initApp();
-      return;
-    }
-  }catch(e){}
+
+// === LOAD ALL DATA FROM SUPABASE ===
+async function loadAllData(){
+  // Contacts
+  const cRows=await dbGet('contacts');
+  contacts=cRows.map(function(r){return{_id:r.id,prenom:r.prenom||'',nom:r.nom||'',type:r.type||'Acheteur',tel:r.tel||'—',email:r.email||'',budget:r.budget||'—',secteur:r.secteur||'—',statut:r.statut||'Froid'};});
+
+  // Biens
+  const bRows=await dbGet('biens');
+  biens=bRows.map(function(r){return{_id:r.id,nom:r.nom||'',type:r.type||'Appartement',surface:r.surface||'',prix:r.prix||'',ville:r.ville||'',statut:r.statut||'En vente'};});
+
+  // Documents
+  const dRows=await dbGet('documents');
+  docs=dRows.map(function(r){return{_id:r.id,nom:r.nom||'',type:r.type||'Autre',statut:r.statut||'Actif',bien:r.bien||'',dossier:r.dossier||'',date:r.date||'',fichier:r.fichier||''};});
+  // Load folders from distinct dossier values
+  const allFolders=[...new Set(docs.map(function(d){return d.dossier;}).filter(Boolean))];
+  folders=allFolders.length?allFolders:['Ventes','Locations','Diagnostics','Photos'];
+
+  // Events
+  const eRows=await dbGet('evenements');
+  calEvents={};
+  eRows.forEach(function(r){
+    if(!calEvents[r.cal_key])calEvents[r.cal_key]=[];
+    calEvents[r.cal_key].push({_id:r.id,title:r.title||'',type:r.type||'Autre',heure:r.heure||''});
+  });
+
+  // Finance
+  const fRows=await dbGet('finance');
+  finance={ventes:[],locations:[]};
+  fRows.forEach(function(r){
+    const item={_id:r.id,type:r.type,bien:r.bien||'',agent:r.agent||'',date:r.date||'',statut:r.statut||'En attente',notes:r.notes||'',com_calc:r.com_calc||'',_auto:r.auto||false,prix:r.prix||'',taux1:r.taux1,taux2:r.taux2,taux3:r.taux3,surface:r.surface||'',loyer:r.loyer||'',rate1:r.rate1,rate2:r.rate2,rate3:r.rate3};
+    if(r.type==='vente')finance.ventes.push(item);
+    else finance.locations.push(item);
+  });
+
+  // Params
+  const {data:pRow}=await supa.from('parametres').select('*').eq('user_id',currentUser.id).single();
+  if(pRow){
+    params={
+      tranchesVente:pRow.tranches_vente||[{max:150000,taux:5},{max:300000,taux:4},{max:null,taux:3}],
+      tranchesLoc:pRow.tranches_loc||[{max:30,rate:12},{max:80,rate:10},{max:null,rate:8}],
+      objectif:pRow.objectif||50000
+    };
+  }
+}
+
+// === SAVE overrides — write to Supabase ===
+function save(){
+  // contacts, biens, docs, finance are saved individually via Supabase
+  // This is a no-op stub kept for compatibility
+}
+
+// Override individual save functions to use Supabase
+async function saveContactSupabase(c){
+  if(c._id){
+    await dbUpdate('contacts',c._id,{prenom:c.prenom,nom:c.nom,type:c.type,tel:c.tel,email:c.email||'',budget:c.budget,secteur:c.secteur,statut:c.statut,user_id:currentUser.id});
+  } else {
+    const row=await dbInsert('contacts',{user_id:currentUser.id,prenom:c.prenom,nom:c.nom,type:c.type,tel:c.tel,email:c.email||'',budget:c.budget,secteur:c.secteur,statut:c.statut});
+    if(row)c._id=row.id;
+  }
+}
+async function saveBienSupabase(b){
+  if(b._id){
+    await dbUpdate('biens',b._id,{nom:b.nom,type:b.type,surface:b.surface,prix:b.prix,ville:b.ville,statut:b.statut,user_id:currentUser.id});
+  } else {
+    const row=await dbInsert('biens',{user_id:currentUser.id,nom:b.nom,type:b.type,surface:b.surface,prix:b.prix,ville:b.ville,statut:b.statut});
+    if(row)b._id=row.id;
+  }
+}
+async function saveDocSupabase(d){
+  if(d._id){
+    await dbUpdate('documents',d._id,{nom:d.nom,type:d.type,statut:d.statut,bien:d.bien,dossier:d.dossier,date:d.date,fichier:d.fichier,user_id:currentUser.id});
+  } else {
+    const row=await dbInsert('documents',{user_id:currentUser.id,nom:d.nom,type:d.type,statut:d.statut,bien:d.bien||'',dossier:d.dossier||'',date:d.date||'',fichier:d.fichier||''});
+    if(row)d._id=row.id;
+  }
+}
+async function saveEventSupabase(key,ev){
+  if(ev._id){
+    await dbUpdate('evenements',ev._id,{cal_key:key,title:ev.title,type:ev.type,heure:ev.heure,user_id:currentUser.id});
+  } else {
+    const row=await dbInsert('evenements',{user_id:currentUser.id,cal_key:key,title:ev.title,type:ev.type,heure:ev.heure||''});
+    if(row)ev._id=row.id;
+  }
+}
+async function saveParamsSupabase(){
+  await dbUpsert('parametres',{user_id:currentUser.id,tranches_vente:params.tranchesVente,tranches_loc:params.tranchesLoc,objectif:params.objectif},'user_id');
+}
+
+// Override saveFinance
+async function saveFinanceSupabase(item){
+  const row={user_id:currentUser.id,type:item.type,bien:item.bien||'',agent:item.agent||'',date:item.date||'',statut:item.statut||'En attente',notes:item.notes||'',com_calc:item.com_calc||'',auto:item._auto||false,prix:item.prix||'',taux1:item.taux1,taux2:item.taux2,taux3:item.taux3,surface:item.surface||'',loyer:item.loyer||'',rate1:item.rate1,rate2:item.rate2,rate3:item.rate3};
+  if(item._id){await dbUpdate('finance',item._id,row);} else {const r=await dbInsert('finance',row);if(r)item._id=r.id;}
+}
+
+// Supabase session check on load
+(async function(){
   document.getElementById('setup-screen').style.display='flex';
+  const {data:{session}}=await supa.auth.getSession();
+  if(session){
+    await onAuthSuccess(session.user);
+  }
 })();
 </script>
 </body>
