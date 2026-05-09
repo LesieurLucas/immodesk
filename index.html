@@ -1516,27 +1516,35 @@ async function saveDoc(){
   if(!nomEl){return;}
   const nom=nomEl.value.trim();
   if(!nom){alert('Nom du document requis');return;}
-  // Retrieve file data from hidden input
   const hiddenFile=document.getElementById('d-fichier-data');
-  let fichier='';
-  if(hiddenFile&&hiddenFile.value) fichier=hiddenFile.value;
-  else if(mMode==='edit-doc') fichier=(docs[mIdx]&&docs[mIdx].fichier)||'';
   const typeEl=document.getElementById('d-type');
   const statutEl=document.getElementById('d-statut');
   const dossierEl=document.getElementById('d-dossier');
   const bienEl=document.getElementById('d-bien');
   const dateEl=document.getElementById('d-date');
-  const d={
-    nom:nom,
-    type:typeEl?typeEl.value:'Autre',
-    statut:statutEl?statutEl.value:'Actif',
-    dossier:dossierEl?dossierEl.value:'',
-    bien:bienEl?bienEl.value:'',
-    date:dateEl?dateEl.value:'—',
-    fichier:fichier
-  };
-  if(mMode==='add-doc'){docs.push(d);await saveDocSupabase(d);}
-  else if(mMode==='edit-doc'&&mIdx!==null){docs[mIdx]=d;await saveDocSupabase(d);}
+  if(mMode==='add-doc'){
+    const fichier=hiddenFile?.value||'';
+    const d={_id:null,nom:nom,type:typeEl?typeEl.value:'Autre',statut:statutEl?statutEl.value:'Actif',dossier:dossierEl?dossierEl.value:'',bien:bienEl?bienEl.value:'',date:dateEl?dateEl.value:'—',fichier:fichier};
+    docs.push(d);
+    closeModal();
+    showPage('docs',null);
+    saveDocSupabase(d).then(function(){notif('Document ajouté.');}).catch(function(e){notif('Erreur : '+e.message,'amber');});
+    return;
+  } else if(mMode==='edit-doc'&&mIdx!==null){
+    const existing=docs[mIdx];
+    const fichier=hiddenFile?.value||existing?.fichier||'';
+    existing.nom=nom;
+    existing.type=typeEl?typeEl.value:'Autre';
+    existing.statut=statutEl?statutEl.value:'Actif';
+    existing.dossier=dossierEl?dossierEl.value:'';
+    existing.bien=bienEl?bienEl.value:'';
+    existing.date=dateEl?dateEl.value:'—';
+    existing.fichier=fichier;
+    closeModal();
+    showPage('docs',null);
+    saveDocSupabase(existing).then(function(){notif('Document mis à jour.');}).catch(function(e){notif('Erreur : '+e.message,'amber');});
+    return;
+  }
   closeModal();
   showPage('docs', null);
   notif(mMode==='add-doc'?'Document ajouté.':'Document mis à jour.');
@@ -2952,7 +2960,7 @@ function setupRealtime(){
       reloadTable('biens');
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'documents',filter:'agence_id=eq.'+currentAgence.id},function(payload){
-      reloadTable('documents');
+      if(!realtimePaused)reloadTable('documents');
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'evenements',filter:'agence_id=eq.'+currentAgence.id},function(payload){
       reloadTable('evenements');
@@ -3157,13 +3165,16 @@ async function saveBienSupabase(b){
   }finally{setTimeout(function(){realtimePaused=false;},1000);}
 }
 async function saveDocSupabase(d){
+  realtimePaused=true;
   const aid=currentAgence.id;
-  if(d._id){
-    await dbUpdate('documents',d._id,{nom:d.nom,type:d.type,statut:d.statut,bien:d.bien,dossier:d.dossier,date:d.date,fichier:d.fichier,user_id:currentUser.id,agence_id:aid});
-  } else {
-    const row=await dbInsert('documents',{user_id:currentUser.id,agence_id:aid,nom:d.nom,type:d.type,statut:d.statut,bien:d.bien||'',dossier:d.dossier||'',date:d.date||'',fichier:d.fichier||''});
-    if(row)d._id=row.id;
-  }
+  try{
+    if(d._id){
+      await dbUpdate('documents',d._id,{nom:d.nom,type:d.type,statut:d.statut,bien:d.bien||'',dossier:d.dossier||'',date:d.date||'',fichier:d.fichier||'',user_id:currentUser.id,agence_id:aid});
+    } else {
+      const row=await dbInsert('documents',{user_id:currentUser.id,agence_id:aid,nom:d.nom,type:d.type,statut:d.statut,bien:d.bien||'',dossier:d.dossier||'',date:d.date||'',fichier:d.fichier||''});
+      if(row)d._id=row.id;
+    }
+  }finally{setTimeout(function(){realtimePaused=false;},1500);}
 }
 async function saveEventSupabase(key,ev){
   const aid=currentAgence.id;
