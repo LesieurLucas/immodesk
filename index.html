@@ -2420,16 +2420,21 @@ function showInvError(msg){
 const _handledInvitations=new Set(); // track dismissed invitations client-side
 
 async function loadPendingInvitations(){
-  if(!currentUser.email)return[];
+  if(!currentUser.email||!currentUser.id)return[];
   const {data}=await supa.from('invitations')
     .select('*,agences(nom)')
     .eq('email',currentUser.email)
     .eq('used',false);
   const now=new Date();
+  // Get agences the user is already member of
+  const myAgenceIds=userAgences.map(function(a){return a.id;});
   const pending=(data||[]).filter(function(inv){
-    return !inv.used
-      && new Date(inv.expires_at)>now
-      && !_handledInvitations.has(inv.id); // exclude locally dismissed
+    if(inv.used)return false;
+    if(new Date(inv.expires_at)<=now)return false;
+    if(_handledInvitations.has(inv.id))return false;
+    // If user is already in this agence, skip
+    if(myAgenceIds.includes(inv.agence_id))return false;
+    return true;
   });
   updateInvBadge(pending.length);
   return pending;
@@ -2476,25 +2481,25 @@ async function showInvitations(){
       accept.onclick=async function(){
         accept.disabled=true;accept.textContent='...';
         _handledInvitations.add(inv.id);
+        updateInvBadge(Math.max(0,(parseInt(document.getElementById('inv-badge')?.textContent||0)-1)));
         await supa.from('membres_agence').upsert({agence_id:inv.agence_id,user_id:currentUser.id,role:inv.role},{onConflict:'agence_id,user_id'});
         await supa.from('invitations').update({used:true}).eq('id',inv.id);
         await loadUserAgences();
         const card=document.getElementById('inv-card-'+i);
         if(card)card.remove();
         notif('Vous avez rejoint '+(inv.agences?.nom||"l'agence")+'!');
-        await loadPendingInvitations();
         if(!document.querySelector('[id^="inv-card-"]'))closeModal();
       };
       const decline=document.createElement('button');
       decline.className='btn btn-sm';
       decline.innerHTML='<i class="ti ti-x"></i> Refuser';
       decline.onclick=async function(){
-        _handledInvitations.add(inv.id); // mark locally dismissed immediately
+        _handledInvitations.add(inv.id);
+        updateInvBadge(Math.max(0,(parseInt(document.getElementById('inv-badge')?.textContent||0)-1)));
         await supa.from('invitations').update({used:true}).eq('id',inv.id);
         const card=document.getElementById('inv-card-'+i);
         if(card)card.remove();
         notif('Invitation refusée.','amber');
-        await loadPendingInvitations();
         if(!document.querySelector('[id^="inv-card-"]'))closeModal();
       };
       wrap.appendChild(accept);
