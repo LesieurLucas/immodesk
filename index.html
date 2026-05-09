@@ -126,8 +126,8 @@
       <span style="font-size:17px;font-weight:700;color:#1a1a18">ImmoDesk</span>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
-      <button type="button" onclick="showAuthScreen('login')" style="background:none;border:none;cursor:pointer;font-size:13px;color:#5f5e5a;padding:8px 16px;border-radius:8px;font-weight:500">Connexion</button>
-      <button type="button" onclick="showAuthScreen('signup')" style="background:#185FA5;color:#fff;border:none;cursor:pointer;font-size:13px;padding:9px 18px;border-radius:8px;font-weight:500">Commencer gratuitement</button>
+      <button type="button" id="landing-btn-login" type="button" style="background:none;border:none;cursor:pointer;font-size:13px;color:#5f5e5a;padding:8px 16px;border-radius:8px;font-weight:500">Connexion</button>
+      <button type="button" id="landing-btn-signup" type="button" style="background:#185FA5;color:#fff;border:none;cursor:pointer;font-size:13px;padding:9px 18px;border-radius:8px;font-weight:500">Commencer gratuitement</button>
     </div>
   </nav>
 
@@ -143,10 +143,10 @@
       ImmoDesk centralise contacts, biens, documents et finances dans une seule plateforme. Rédigez vos annonces et relancez vos clients en un clic grâce à l'IA.
     </p>
     <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
-      <button type="button" onclick="showAuthScreen('signup')" style="background:#185FA5;color:#fff;border:none;cursor:pointer;font-size:15px;padding:14px 28px;border-radius:10px;font-weight:600;display:flex;align-items:center;gap:8px">
+      <button type="button" id="landing-btn-hero1" type="button" style="background:#185FA5;color:#fff;border:none;cursor:pointer;font-size:15px;padding:14px 28px;border-radius:10px;font-weight:600;display:flex;align-items:center;gap:8px">
         <i class="ti ti-arrow-right"></i> Essayer gratuitement
       </button>
-      <button type="button" onclick="showAuthScreen('login')" style="background:#fff;color:#1a1a18;border:1px solid rgba(0,0,0,0.15);cursor:pointer;font-size:15px;padding:14px 28px;border-radius:10px;font-weight:500">
+      <button type="button" id="landing-btn-hero2" type="button" style="background:#fff;color:#1a1a18;border:1px solid rgba(0,0,0,0.15);cursor:pointer;font-size:15px;padding:14px 28px;border-radius:10px;font-weight:500">
         Se connecter
       </button>
     </div>
@@ -214,7 +214,7 @@
         <div style="font-size:13px;color:#5f5e5a;line-height:2">
           ✓ 1 agence<br>✓ Jusqu'à 3 utilisateurs<br>✓ 50 contacts<br>✓ 20 biens<br>✓ Outils IA inclus<br>✓ Agenda & documents
         </div>
-        <button type="button" onclick="showAuthScreen('signup')" style="width:100%;margin-top:1.5rem;background:#f1efe8;color:#1a1a18;border:none;cursor:pointer;font-size:13px;padding:12px;border-radius:8px;font-weight:500">Commencer gratuitement</button>
+        <button type="button" id="landing-btn-free" type="button" style="width:100%;margin-top:1.5rem;background:#f1efe8;color:#1a1a18;border:none;cursor:pointer;font-size:13px;padding:12px;border-radius:8px;font-weight:500">Commencer gratuitement</button>
       </div>
       <div style="background:#185FA5;border-radius:16px;padding:2rem;position:relative;overflow:hidden">
         <div style="position:absolute;top:12px;right:12px;background:rgba(255,255,255,0.2);color:#fff;border-radius:100px;padding:3px 10px;font-size:11px;font-weight:500">Recommandé</div>
@@ -224,7 +224,7 @@
         <div style="font-size:13px;color:rgba(255,255,255,0.85);line-height:2">
           ✓ Agences illimitées<br>✓ Équipe illimitée<br>✓ Contacts & biens illimités<br>✓ Synchronisation temps réel<br>✓ Rapports & exports<br>✓ Support prioritaire
         </div>
-        <button type="button" onclick="showAuthScreen('signup')" style="width:100%;margin-top:1.5rem;background:#fff;color:#185FA5;border:none;cursor:pointer;font-size:13px;padding:12px;border-radius:8px;font-weight:600">Démarrer l'essai gratuit</button>
+        <button type="button" id="landing-btn-pro" type="button" style="width:100%;margin-top:1.5rem;background:#fff;color:#185FA5;border:none;cursor:pointer;font-size:13px;padding:12px;border-radius:8px;font-weight:600">Démarrer l'essai gratuit</button>
       </div>
     </div>
   </div>
@@ -241,7 +241,7 @@
   <div style="background:#fff;border-radius:16px;padding:2.5rem;max-width:420px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,0.08);border:0.5px solid rgba(0,0,0,0.08)">
 
     <!-- Back to landing -->
-    <button type="button" onclick="showLanding()" style="background:none;border:none;cursor:pointer;font-size:12px;color:#888780;display:flex;align-items:center;gap:4px;margin-bottom:1.5rem;padding:0">
+    <button type="button" id="btn-back-to-landing" type="button" style="background:none;border:none;cursor:pointer;font-size:12px;color:#888780;display:flex;align-items:center;gap:4px;margin-bottom:1.5rem;padding:0">
       <i class="ti ti-arrow-left" style="font-size:14px"></i> Retour
     </button>
 
@@ -1890,8 +1890,8 @@ function hideLandingFromApp(){
   if(nav){
     const btnZone=nav.querySelector('div:last-child');
     if(btnZone){
-      btnZone.innerHTML='<button type="button" onclick="showAuthScreen('login')" style="background:none;border:none;cursor:pointer;font-size:13px;color:#5f5e5a;padding:8px 16px;border-radius:8px;font-weight:500">Connexion</button>'
-        +'<button type="button" onclick="showAuthScreen('signup')" style="background:#185FA5;color:#fff;border:none;cursor:pointer;font-size:13px;padding:9px 18px;border-radius:8px;font-weight:500">Commencer gratuitement</button>';
+      btnZone.innerHTML='<button type="button" id="landing-btn-login" type="button" style="background:none;border:none;cursor:pointer;font-size:13px;color:#5f5e5a;padding:8px 16px;border-radius:8px;font-weight:500">Connexion</button>'
+        +'<button type="button" id="landing-btn-signup" type="button" style="background:#185FA5;color:#fff;border:none;cursor:pointer;font-size:13px;padding:9px 18px;border-radius:8px;font-weight:500">Commencer gratuitement</button>';
     }
   }
 }
@@ -1909,6 +1909,7 @@ function showAuthScreen(mode){
 
 // Attach login page events after DOM ready
 document.addEventListener('DOMContentLoaded', function(){
+  // Auth form buttons
   const tabLogin=document.getElementById('tab-login');
   const tabSignup=document.getElementById('tab-signup');
   const btnForgot=document.getElementById('btn-forgot');
@@ -1916,6 +1917,7 @@ document.addEventListener('DOMContentLoaded', function(){
   const btnAuth=document.getElementById('btn-auth');
   const btnBack=document.getElementById('btn-back-login');
   const pwdInput=document.getElementById('login-pwd');
+  const emailInput=document.getElementById('login-email');
   if(tabLogin) tabLogin.addEventListener('click', function(){switchAuthTab('login');});
   if(tabSignup) tabSignup.addEventListener('click', function(){switchAuthTab('signup');});
   if(btnForgot) btnForgot.addEventListener('click', doForgot);
@@ -1923,6 +1925,22 @@ document.addEventListener('DOMContentLoaded', function(){
   if(btnAuth) btnAuth.addEventListener('click', doLogin);
   if(btnBack) btnBack.addEventListener('click', function(){switchAuthTab('login');});
   if(pwdInput) pwdInput.addEventListener('keydown', function(e){if(e.key==='Enter')doLogin();});
+  if(emailInput) emailInput.addEventListener('keydown', function(e){if(e.key==='Enter')document.getElementById('login-pwd')?.focus();});
+
+  // Landing page buttons
+  const ids=[
+    ['landing-btn-login',   function(){showAuthScreen('login');}],
+    ['landing-btn-signup',  function(){showAuthScreen('signup');}],
+    ['landing-btn-hero1',   function(){showAuthScreen('signup');}],
+    ['landing-btn-hero2',   function(){showAuthScreen('login');}],
+    ['landing-btn-free',    function(){showAuthScreen('signup');}],
+    ['landing-btn-pro',     function(){showAuthScreen('signup');}],
+    ['btn-back-to-landing', function(){showLanding();}],
+  ];
+  ids.forEach(function(pair){
+    const el=document.getElementById(pair[0]);
+    if(el) el.addEventListener('click', pair[1]);
+  });
 });
 
 function switchAuthTab(mode){
