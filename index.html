@@ -2946,19 +2946,20 @@ async function saveCommission(){
 // === REALTIME ===
 let realtimeChannel=null;
 let realtimePaused=false;
+let savingTable=null; // which table is being saved
 
 function setupRealtime(){
   if(realtimeChannel){supa.removeChannel(realtimeChannel);}
   if(!currentAgence.id)return;
   realtimeChannel=supa.channel('agence-'+currentAgence.id)
     .on('postgres_changes',{event:'*',schema:'public',table:'contacts'},function(payload){
-      if(!realtimePaused&&payload.new?.agence_id===currentAgence.id||payload.old?.agence_id===currentAgence.id)reloadTable('contacts');
+      if(payload.new?.agence_id===currentAgence.id||payload.old?.agence_id===currentAgence.id)reloadTable('contacts');
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'biens'},function(payload){
-      if(!realtimePaused&&(payload.new?.agence_id===currentAgence.id||payload.old?.agence_id===currentAgence.id))reloadTable('biens');
+      if(payload.new?.agence_id===currentAgence.id||payload.old?.agence_id===currentAgence.id)reloadTable('biens');
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'documents'},function(payload){
-      if(!realtimePaused&&(payload.new?.agence_id===currentAgence.id||payload.old?.agence_id===currentAgence.id))reloadTable('documents');
+      if(payload.new?.agence_id===currentAgence.id||payload.old?.agence_id===currentAgence.id)reloadTable('documents');
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'evenements'},function(payload){
       if(!realtimePaused&&(payload.new?.agence_id===currentAgence.id||payload.old?.agence_id===currentAgence.id))reloadTable('evenements');
@@ -2986,7 +2987,7 @@ function setupRealtime(){
 }
 
 async function reloadTable(table){
-  if(realtimePaused)return; // skip reload during active save
+  if(savingTable===table)return; // skip own save echo
   const aid=currentAgence.id;
   if(table==='contacts'){
     const {data}=await supa.from('contacts').select('*').eq('agence_id',aid);
@@ -3139,7 +3140,7 @@ function save(){
 
 // Override individual save functions to use Supabase
 async function saveContactSupabase(c){
-  realtimePaused=true;
+  savingTable='contacts';
   const aid=currentAgence.id;
   try{
     if(c._id){
@@ -3148,10 +3149,10 @@ async function saveContactSupabase(c){
       const row=await dbInsert('contacts',{user_id:currentUser.id,agence_id:aid,prenom:c.prenom,nom:c.nom,type:c.type,tel:c.tel,email:c.email||'',budget:c.budget,secteur:c.secteur,statut:c.statut});
       if(row)c._id=row.id;
     }
-  }finally{setTimeout(function(){realtimePaused=false;},1000);}
+  }finally{setTimeout(function(){savingTable=null;},2000);}
 }
 async function saveBienSupabase(b){
-  realtimePaused=true;
+  savingTable='biens';
   const aid=currentAgence.id;
   try{
     if(b._id){
@@ -3160,10 +3161,10 @@ async function saveBienSupabase(b){
       const row=await dbInsert('biens',{user_id:currentUser.id,agence_id:aid,nom:b.nom,type:b.type,surface:b.surface,prix:b.prix,ville:b.ville,statut:b.statut});
       if(row)b._id=row.id;
     }
-  }finally{setTimeout(function(){realtimePaused=false;},1000);}
+  }finally{setTimeout(function(){savingTable=null;},2000);}
 }
 async function saveDocSupabase(d){
-  realtimePaused=true;
+  savingTable='documents';
   const aid=currentAgence.id;
   try{
     if(d._id){
@@ -3172,7 +3173,7 @@ async function saveDocSupabase(d){
       const row=await dbInsert('documents',{user_id:currentUser.id,agence_id:aid,nom:d.nom,type:d.type,statut:d.statut,bien:d.bien||'',dossier:d.dossier||'',date:d.date||'',fichier:d.fichier||''});
       if(row)d._id=row.id;
     }
-  }finally{setTimeout(function(){realtimePaused=false;},1500);}
+  }finally{setTimeout(function(){savingTable=null;},2000);}
 }
 async function saveEventSupabase(key,ev){
   const aid=currentAgence.id;
