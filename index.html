@@ -2951,19 +2951,17 @@ function setupRealtime(){
   if(realtimeChannel){supa.removeChannel(realtimeChannel);}
   if(!currentAgence.id)return;
   realtimeChannel=supa.channel('agence-'+currentAgence.id)
-    .on('postgres_changes',{event:'*',schema:'public',table:'contacts',filter:'agence_id=eq.'+currentAgence.id},function(payload){
-      console.log('Realtime contacts:',payload.eventType);
-      reloadTable('contacts');
+    .on('postgres_changes',{event:'*',schema:'public',table:'contacts'},function(payload){
+      if(!realtimePaused&&payload.new?.agence_id===currentAgence.id||payload.old?.agence_id===currentAgence.id)reloadTable('contacts');
     })
-    .on('postgres_changes',{event:'*',schema:'public',table:'biens',filter:'agence_id=eq.'+currentAgence.id},function(payload){
-      console.log('Realtime biens:',payload.eventType);
-      reloadTable('biens');
+    .on('postgres_changes',{event:'*',schema:'public',table:'biens'},function(payload){
+      if(!realtimePaused&&(payload.new?.agence_id===currentAgence.id||payload.old?.agence_id===currentAgence.id))reloadTable('biens');
     })
-    .on('postgres_changes',{event:'*',schema:'public',table:'documents',filter:'agence_id=eq.'+currentAgence.id},function(payload){
-      if(!realtimePaused)reloadTable('documents');
+    .on('postgres_changes',{event:'*',schema:'public',table:'documents'},function(payload){
+      if(!realtimePaused&&(payload.new?.agence_id===currentAgence.id||payload.old?.agence_id===currentAgence.id))reloadTable('documents');
     })
-    .on('postgres_changes',{event:'*',schema:'public',table:'evenements',filter:'agence_id=eq.'+currentAgence.id},function(payload){
-      reloadTable('evenements');
+    .on('postgres_changes',{event:'*',schema:'public',table:'evenements'},function(payload){
+      if(!realtimePaused&&(payload.new?.agence_id===currentAgence.id||payload.old?.agence_id===currentAgence.id))reloadTable('evenements');
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'finance',filter:'agence_id=eq.'+currentAgence.id},function(){
       if(!realtimePaused){
