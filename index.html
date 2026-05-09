@@ -2602,6 +2602,11 @@ function finSwitchTab(tab){
 }
 
 function autoImportBiens(){
+  autoImportBiensLocal();
+}
+
+function autoImportBiensLocal(){
+  // Updates local finance arrays only — no Supabase writes
   const venduStatuts=['Vendu','Acte final'];
   const locStatuts=['En location'];
   finance.ventes=finance.ventes.filter(function(v){
@@ -2624,8 +2629,7 @@ function autoImportBiens(){
           date:new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}),
           prix:String(prix),statut:'En attente',notes:'Importé automatiquement',com_calc:'',_auto:true};
         finance.ventes.push(item);
-        // Only save to DB if no _id (new item, not already in Supabase)
-        if(!item._id)saveFinanceSupabase(item);
+        // DB save handled by saveBien trigger
       }
     }
     if(locStatuts.includes(b.statut)){
@@ -2637,7 +2641,7 @@ function autoImportBiens(){
           date:new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}),
           loyer:String(loyer),surface:String(surface),statut:'En attente',notes:'Importé automatiquement',com_calc:'',_auto:true};
         finance.locations.push(item);
-        if(!item._id)saveFinanceSupabase(item);
+        // DB save handled by saveBien trigger
       }
     }
   });
@@ -2656,7 +2660,7 @@ function syncBienToFinance(b,oldNom){
 }
 
 function renderFinance(){
-  autoImportBiens();
+  autoImportBiensLocal(); // only update local array, no DB writes
   const ventes=finance.ventes||[];
   const locations=finance.locations||[];
   const now=new Date();
@@ -2912,6 +2916,18 @@ function setupRealtime(){
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'evenements',filter:'agence_id=eq.'+currentAgence.id},function(payload){
       reloadTable('evenements');
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'finance',filter:'agence_id=eq.'+currentAgence.id},function(){
+      if(!realtimePaused){
+        const {data:fRows}=supa.from('finance').select('*').eq('agence_id',currentAgence.id).then(function(r){
+          finance={ventes:[],locations:[]};
+          (r.data||[]).forEach(function(row){
+            const item={_id:row.id,type:row.type,bien:row.bien||'',agent:row.agent||'',date:row.date||'',statut:row.statut||'En attente',notes:row.notes||'',com_calc:row.com_calc||'',_auto:row.auto||false,prix:row.prix||'',surface:row.surface||'',loyer:row.loyer||''};
+            if(row.type==='vente')finance.ventes.push(item);else finance.locations.push(item);
+          });
+          if(!document.getElementById('page-finance').classList.contains('hidden'))renderFinance();
+        });
+      }
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'membres_agence',filter:'agence_id=eq.'+currentAgence.id},function(){
       if(document.getElementById('page-equipe')&&!document.getElementById('page-equipe').classList.contains('hidden')){
