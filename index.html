@@ -229,10 +229,10 @@
     <div class="nav-section">Principal</div>
     <div class="nav-item active" onclick="showPage('dashboard',this)"><i class="ti ti-layout-dashboard"></i> Tableau de bord</div>
     <div class="nav-item" onclick="showPage('contacts',this)"><i class="ti ti-users"></i> Contacts</div>
-    <div class="nav-item nav-agent nav-gerant" style="display:none" onclick="showPage('biens',this)"><i class="ti ti-home"></i> Biens</div>
-    <div class="nav-section nav-agent nav-gerant" style="display:none">IA</div>
-    <div class="nav-item nav-agent nav-gerant" style="display:none" onclick="showPage('annonces',this)"><i class="ti ti-sparkles"></i> Rédiger annonce</div>
-    <div class="nav-item nav-agent nav-gerant" style="display:none" onclick="showPage('relances',this)"><i class="ti ti-mail-forward"></i> Relances auto</div>
+    <div class="nav-item" onclick="showPage('biens',this)"><i class="ti ti-home"></i> Biens</div>
+    <div class="nav-section">IA</div>
+    <div class="nav-item" onclick="showPage('annonces',this)"><i class="ti ti-sparkles"></i> Rédiger annonce</div>
+    <div class="nav-item" onclick="showPage('relances',this)"><i class="ti ti-mail-forward"></i> Relances auto</div>
     <div class="nav-section">Agence</div>
     <div class="nav-item" onclick="showPage('agenda',this)"><i class="ti ti-calendar"></i> Agenda</div>
     <div class="nav-item" onclick="showPage('docs',this)"><i class="ti ti-file-text"></i> Documents</div>
@@ -2339,6 +2339,7 @@ function autoImportBiens(){
   });
   biens.forEach(function(b){
     if(venduStatuts.includes(b.statut)){
+      // Only add if not already in local array (avoids duplicates on re-render)
       const already=finance.ventes.find(function(v){return v.bien===b.nom&&v._auto;});
       if(!already){
         const prix=parseFloat((b.prix||'').replace(/[^0-9.]/g,''))||0;
@@ -2346,7 +2347,8 @@ function autoImportBiens(){
           date:new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}),
           prix:String(prix),statut:'En attente',notes:'Importé automatiquement',com_calc:'',_auto:true};
         finance.ventes.push(item);
-        saveFinanceSupabase(item);
+        // Only save to DB if no _id (new item, not already in Supabase)
+        if(!item._id)saveFinanceSupabase(item);
       }
     }
     if(locStatuts.includes(b.statut)){
@@ -2358,7 +2360,7 @@ function autoImportBiens(){
           date:new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}),
           loyer:String(loyer),surface:String(surface),statut:'En attente',notes:'Importé automatiquement',com_calc:'',_auto:true};
         finance.locations.push(item);
-        saveFinanceSupabase(item);
+        if(!item._id)saveFinanceSupabase(item);
       }
     }
   });
