@@ -114,67 +114,195 @@
 </head>
 <body>
 
+<!-- LANDING PAGE -->
+<div id="landing-screen" style="display:flex;flex-direction:column;min-height:100dvh;background:#FAFAF8;position:fixed;inset:0;z-index:997;overflow-y:auto">
+
+  <!-- Navbar -->
+  <nav style="display:flex;align-items:center;justify-content:space-between;padding:1rem 2rem;background:#fff;border-bottom:0.5px solid rgba(0,0,0,0.08);position:sticky;top:0;z-index:10">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:34px;height:34px;background:#185FA5;border-radius:8px;display:flex;align-items:center;justify-content:center">
+        <svg viewBox="0 0 32 32" width="20" height="20"><path d="M16 4L3 14v1h3v13h7v-7h6v7h7V15h3v-1L16 4z" fill="white"/></svg>
+      </div>
+      <span style="font-size:17px;font-weight:700;color:#1a1a18">ImmoDesk</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button type="button" onclick="showAuthScreen('login')" style="background:none;border:none;cursor:pointer;font-size:13px;color:#5f5e5a;padding:8px 16px;border-radius:8px;font-weight:500">Connexion</button>
+      <button type="button" onclick="showAuthScreen('signup')" style="background:#185FA5;color:#fff;border:none;cursor:pointer;font-size:13px;padding:9px 18px;border-radius:8px;font-weight:500">Commencer gratuitement</button>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;padding:5rem 1.5rem 3rem">
+    <div style="display:inline-flex;align-items:center;gap:6px;background:#E6F1FB;color:#185FA5;border-radius:100px;padding:5px 14px;font-size:12px;font-weight:500;margin-bottom:1.5rem">
+      <i class="ti ti-sparkles" style="font-size:14px"></i> CRM immobilier nouvelle génération
+    </div>
+    <h1 style="font-size:clamp(2rem,5vw,3.5rem);font-weight:700;color:#1a1a18;line-height:1.15;max-width:700px;margin-bottom:1.25rem">
+      Gérez votre agence immobilière avec l'IA
+    </h1>
+    <p style="font-size:1.1rem;color:#5f5e5a;max-width:520px;line-height:1.65;margin-bottom:2.5rem">
+      ImmoDesk centralise contacts, biens, documents et finances dans une seule plateforme. Rédigez vos annonces et relancez vos clients en un clic grâce à l'IA.
+    </p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
+      <button type="button" onclick="showAuthScreen('signup')" style="background:#185FA5;color:#fff;border:none;cursor:pointer;font-size:15px;padding:14px 28px;border-radius:10px;font-weight:600;display:flex;align-items:center;gap:8px">
+        <i class="ti ti-arrow-right"></i> Essayer gratuitement
+      </button>
+      <button type="button" onclick="showAuthScreen('login')" style="background:#fff;color:#1a1a18;border:1px solid rgba(0,0,0,0.15);cursor:pointer;font-size:15px;padding:14px 28px;border-radius:10px;font-weight:500">
+        Se connecter
+      </button>
+    </div>
+  </div>
+
+  <!-- Features -->
+  <div style="padding:3rem 1.5rem;background:#fff;border-top:0.5px solid rgba(0,0,0,0.06)">
+    <h2 style="text-align:center;font-size:1.6rem;font-weight:600;color:#1a1a18;margin-bottom:.5rem">Tout ce dont votre agence a besoin</h2>
+    <p style="text-align:center;color:#888780;font-size:14px;margin-bottom:2.5rem">Une solution complète, conçue pour les agents immobiliers indépendants</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.25rem;max-width:1000px;margin:0 auto">
+      <div style="background:#FAFAF8;border:0.5px solid rgba(0,0,0,0.08);border-radius:12px;padding:1.5rem">
+        <div style="width:40px;height:40px;background:#E6F1FB;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:1rem">
+          <i class="ti ti-users" style="font-size:20px;color:#185FA5"></i>
+        </div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:.4rem">Gestion des contacts</div>
+        <div style="font-size:13px;color:#5f5e5a;line-height:1.6">Centralisez acheteurs, vendeurs et locataires. Suivez chaque contact avec son statut et son historique.</div>
+      </div>
+      <div style="background:#FAFAF8;border:0.5px solid rgba(0,0,0,0.08);border-radius:12px;padding:1.5rem">
+        <div style="width:40px;height:40px;background:#E1F5EE;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:1rem">
+          <i class="ti ti-home" style="font-size:20px;color:#1D9E75"></i>
+        </div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:.4rem">Portefeuille de biens</div>
+        <div style="font-size:13px;color:#5f5e5a;line-height:1.6">Gérez vos mandats, suivez les statuts (vente, compromis, acte) et synchronisez avec vos finances.</div>
+      </div>
+      <div style="background:#FAFAF8;border:0.5px solid rgba(0,0,0,0.08);border-radius:12px;padding:1.5rem">
+        <div style="width:40px;height:40px;background:#EEEDFE;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:1rem">
+          <i class="ti ti-sparkles" style="font-size:20px;color:#534AB7"></i>
+        </div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:.4rem">IA intégrée</div>
+        <div style="font-size:13px;color:#5f5e5a;line-height:1.6">Rédigez des annonces professionnelles et des messages de relance personnalisés en un clic grâce à l'IA.</div>
+      </div>
+      <div style="background:#FAFAF8;border:0.5px solid rgba(0,0,0,0.08);border-radius:12px;padding:1.5rem">
+        <div style="width:40px;height:40px;background:#FAEEDA;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:1rem">
+          <i class="ti ti-chart-bar" style="font-size:20px;color:#BA7517"></i>
+        </div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:.4rem">Finances & commissions</div>
+        <div style="font-size:13px;color:#5f5e5a;line-height:1.6">Suivez votre CA mensuel et annuel. Calculez automatiquement vos honoraires selon votre barème.</div>
+      </div>
+      <div style="background:#FAFAF8;border:0.5px solid rgba(0,0,0,0.08);border-radius:12px;padding:1.5rem">
+        <div style="width:40px;height:40px;background:#E6F1FB;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:1rem">
+          <i class="ti ti-users-group" style="font-size:20px;color:#185FA5"></i>
+        </div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:.4rem">Multi-agences & équipe</div>
+        <div style="font-size:13px;color:#5f5e5a;line-height:1.6">Créez plusieurs agences, invitez agents et secrétaires. Chaque rôle accède uniquement à ses données.</div>
+      </div>
+      <div style="background:#FAFAF8;border:0.5px solid rgba(0,0,0,0.08);border-radius:12px;padding:1.5rem">
+        <div style="width:40px;height:40px;background:#E1F5EE;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:1rem">
+          <i class="ti ti-calendar" style="font-size:20px;color:#1D9E75"></i>
+        </div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:.4rem">Agenda & documents</div>
+        <div style="font-size:13px;color:#5f5e5a;line-height:1.6">Planifiez visites et rendez-vous. Stockez mandats, DPE, compromis et documents directement dans l'app.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pricing -->
+  <div style="padding:3rem 1.5rem;background:#FAFAF8;border-top:0.5px solid rgba(0,0,0,0.06)">
+    <h2 style="text-align:center;font-size:1.6rem;font-weight:600;color:#1a1a18;margin-bottom:.5rem">Tarifs simples et transparents</h2>
+    <p style="text-align:center;color:#888780;font-size:14px;margin-bottom:2.5rem">Commencez gratuitement, passez à Pro quand vous en avez besoin</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.25rem;max-width:700px;margin:0 auto">
+      <div style="background:#fff;border:0.5px solid rgba(0,0,0,0.1);border-radius:16px;padding:2rem">
+        <div style="font-size:13px;font-weight:500;color:#5f5e5a;margin-bottom:.5rem">GRATUIT</div>
+        <div style="font-size:2.5rem;font-weight:700;color:#1a1a18;margin-bottom:.25rem">0€</div>
+        <div style="font-size:12px;color:#888780;margin-bottom:1.5rem">Pour toujours</div>
+        <div style="font-size:13px;color:#5f5e5a;line-height:2">
+          ✓ 1 agence<br>✓ Jusqu'à 3 utilisateurs<br>✓ 50 contacts<br>✓ 20 biens<br>✓ Outils IA inclus<br>✓ Agenda & documents
+        </div>
+        <button type="button" onclick="showAuthScreen('signup')" style="width:100%;margin-top:1.5rem;background:#f1efe8;color:#1a1a18;border:none;cursor:pointer;font-size:13px;padding:12px;border-radius:8px;font-weight:500">Commencer gratuitement</button>
+      </div>
+      <div style="background:#185FA5;border-radius:16px;padding:2rem;position:relative;overflow:hidden">
+        <div style="position:absolute;top:12px;right:12px;background:rgba(255,255,255,0.2);color:#fff;border-radius:100px;padding:3px 10px;font-size:11px;font-weight:500">Recommandé</div>
+        <div style="font-size:13px;font-weight:500;color:rgba(255,255,255,0.7);margin-bottom:.5rem">PRO</div>
+        <div style="font-size:2.5rem;font-weight:700;color:#fff;margin-bottom:.25rem">29€</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-bottom:1.5rem">par mois / agence</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.85);line-height:2">
+          ✓ Agences illimitées<br>✓ Équipe illimitée<br>✓ Contacts & biens illimités<br>✓ Synchronisation temps réel<br>✓ Rapports & exports<br>✓ Support prioritaire
+        </div>
+        <button type="button" onclick="showAuthScreen('signup')" style="width:100%;margin-top:1.5rem;background:#fff;color:#185FA5;border:none;cursor:pointer;font-size:13px;padding:12px;border-radius:8px;font-weight:600">Démarrer l'essai gratuit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="text-align:center;padding:2rem;color:#888780;font-size:12px;background:#fff;border-top:0.5px solid rgba(0,0,0,0.06)">
+    © 2026 ImmoDesk — Conçu pour les agences immobilières indépendantes
+  </div>
+
+</div>
+
 <!-- LOGIN / SIGNUP -->
-<div id="setup-screen" style="display:flex;position:fixed;inset:0;z-index:999;align-items:center;justify-content:center;padding:1rem;background:linear-gradient(135deg,#0f3460 0%,#185FA5 60%,#1a8fe3 100%)">
-  <div style="background:var(--surface);border-radius:20px;padding:2.5rem;max-width:420px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.25)">
+<div id="setup-screen" style="display:none;position:fixed;inset:0;z-index:999;align-items:center;justify-content:center;padding:1rem;background:#FAFAF8">
+  <div style="background:#fff;border-radius:16px;padding:2.5rem;max-width:420px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,0.08);border:0.5px solid rgba(0,0,0,0.08)">
+
+    <!-- Back to landing -->
+    <button type="button" onclick="showLanding()" style="background:none;border:none;cursor:pointer;font-size:12px;color:#888780;display:flex;align-items:center;gap:4px;margin-bottom:1.5rem;padding:0">
+      <i class="ti ti-arrow-left" style="font-size:14px"></i> Retour
+    </button>
 
     <!-- Logo -->
-    <div style="text-align:center;margin-bottom:1.75rem">
-      <div style="width:60px;height:60px;background:#185FA5;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto .75rem">
-        <svg viewBox="0 0 32 32" width="34" height="34"><path d="M16 4L3 14v1h3v13h7v-7h6v7h7V15h3v-1L16 4z" fill="white"/></svg>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:1.75rem">
+      <div style="width:38px;height:38px;background:#185FA5;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg viewBox="0 0 32 32" width="22" height="22"><path d="M16 4L3 14v1h3v13h7v-7h6v7h7V15h3v-1L16 4z" fill="white"/></svg>
       </div>
-      <div style="font-size:22px;font-weight:700;color:var(--text)">ImmoDesk</div>
-      <div style="font-size:13px;color:var(--text3);margin-top:3px">CRM Immobilier</div>
+      <div>
+        <div style="font-size:16px;font-weight:700;color:#1a1a18">ImmoDesk</div>
+        <div style="font-size:11px;color:#888780">CRM Immobilier</div>
+      </div>
     </div>
 
     <!-- Tabs login/signup -->
-    <div style="display:flex;border-bottom:0.5px solid var(--border);margin-bottom:1.5rem">
-      <button id="tab-login" type="button" style="flex:1;background:none;border:none;cursor:pointer;padding:8px;font-size:13px;font-weight:500;color:var(--blue);border-bottom:2px solid var(--blue)">Connexion</button>
-      <button id="tab-signup" type="button" style="flex:1;background:none;border:none;cursor:pointer;padding:8px;font-size:13px;color:var(--text3);border-bottom:2px solid transparent">Créer un compte</button>
+    <div style="display:flex;border-bottom:0.5px solid rgba(0,0,0,0.1);margin-bottom:1.5rem">
+      <button id="tab-login" type="button" style="flex:1;background:none;border:none;cursor:pointer;padding:8px;font-size:13px;font-weight:500;color:#185FA5;border-bottom:2px solid #185FA5">Connexion</button>
+      <button id="tab-signup" type="button" style="flex:1;background:none;border:none;cursor:pointer;padding:8px;font-size:13px;color:#888780;border-bottom:2px solid transparent">Créer un compte</button>
     </div>
 
     <!-- Error -->
     <div id="login-error" style="background:#FCEBEB;color:#791F1F;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:1rem;display:none">
       <i class="ti ti-alert-circle" style="vertical-align:-2px;margin-right:6px"></i><span id="login-error-msg"></span>
     </div>
-    <!-- Success -->
     <div id="login-success" style="background:#E1F5EE;color:#085041;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:1rem;display:none">
       <i class="ti ti-check" style="vertical-align:-2px;margin-right:6px"></i><span id="login-success-msg"></span>
     </div>
 
     <!-- Nom (signup only) -->
     <div id="field-nom" style="margin-bottom:12px;display:none">
-      <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Votre nom</label>
+      <label style="font-size:12px;color:#5f5e5a;display:block;margin-bottom:4px">Votre nom</label>
       <input type="text" id="login-nom" placeholder="Marie Dupont">
     </div>
 
     <!-- Email -->
     <div style="margin-bottom:12px">
-      <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">Email</label>
-      <input type="email" id="login-email" placeholder="gerant@agence.fr" onkeydown="if(event.key==='Enter')document.getElementById('login-pwd').focus()">
+      <label style="font-size:12px;color:#5f5e5a;display:block;margin-bottom:4px">Email</label>
+      <input type="email" id="login-email" placeholder="gerant@agence.fr">
     </div>
 
     <!-- Password -->
     <div style="margin-bottom:1.5rem">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-        <label style="font-size:12px;color:var(--text2)">Mot de passe</label>
-        <button id="btn-forgot" type="button" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--blue)">Mot de passe oublié ?</button>
+        <label style="font-size:12px;color:#5f5e5a">Mot de passe</label>
+        <button id="btn-forgot" type="button" style="background:none;border:none;cursor:pointer;font-size:11px;color:#185FA5">Mot de passe oublié ?</button>
       </div>
       <div style="position:relative">
-        <input type="password" id="login-pwd" placeholder="••••••••" style="padding-right:40px" onkeydown="if(event.key==='Enter')doLogin()">
-        <button type="button" id="login-eye" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px"><i class="ti ti-eye"></i></button>
+        <input type="password" id="login-pwd" placeholder="••••••••" style="padding-right:40px">
+        <button type="button" id="login-eye" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#888780;font-size:16px"><i class="ti ti-eye"></i></button>
       </div>
     </div>
 
     <!-- Submit -->
-    <button id="btn-auth" type="button" class="btn btn-primary" style="width:100%;justify-content:center;padding:10px;font-size:14px">
+    <button id="btn-auth" type="button" class="btn btn-primary" style="width:100%;justify-content:center;padding:11px;font-size:14px;font-weight:600">
       <i class="ti ti-login"></i> Se connecter
     </button>
 
     <!-- Forgot password sent state -->
     <div id="forgot-sent" style="display:none;text-align:center;margin-top:1rem">
-      <div style="font-size:13px;color:var(--green)"><i class="ti ti-mail-check" style="font-size:16px;vertical-align:-3px;margin-right:4px"></i>Email envoyé ! Vérifiez votre boîte mail.</div>
-      <button id="btn-back-login" type="button" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--blue);margin-top:8px">← Retour à la connexion</button>
+      <div style="font-size:13px;color:#1D9E75"><i class="ti ti-mail-check" style="font-size:16px;vertical-align:-3px;margin-right:4px"></i>Email envoyé ! Vérifiez votre boîte mail.</div>
+      <button id="btn-back-login" type="button" style="background:none;border:none;cursor:pointer;font-size:12px;color:#185FA5;margin-top:8px">← Retour à la connexion</button>
     </div>
 
   </div>
@@ -243,6 +371,7 @@
     <div style="flex:1"></div>
     <div class="nav-item nav-gerant" style="display:none;border-top:0.5px solid var(--border);color:var(--text3)" onclick="showPage('parametres',this)"><i class="ti ti-settings"></i> Paramètres</div>
     <div id="sidebar-user" style="padding:10px 1rem;border-top:0.5px solid var(--border)"></div>
+    <div class="nav-item" onclick="showLandingFromApp()" style="color:var(--text3);margin-bottom:.25rem"><i class="ti ti-home"></i> Page d'accueil</div>
     <div class="nav-item" onclick="doLogout()" style="color:var(--red);margin-bottom:.5rem"><i class="ti ti-logout"></i> Déconnexion</div>
   </div>
 
@@ -1736,6 +1865,43 @@ function copyText(id){navigator.clipboard?.writeText(document.getElementById(id)
 // === AUTH SUPABASE ===
 let authMode='login';
 
+function showLandingFromApp(){
+  // Show landing over the app without logging out
+  document.getElementById('landing-screen').style.display='flex';
+  // Override navbar to show "Retour à l'app" button
+  const nav=document.querySelector('#landing-screen nav');
+  if(nav){
+    const btnZone=nav.querySelector('div:last-child');
+    if(btnZone){
+      btnZone.innerHTML='<button type="button" onclick="hideLandingFromApp()" style="background:#185FA5;color:#fff;border:none;cursor:pointer;font-size:13px;padding:9px 18px;border-radius:8px;font-weight:500"><i class="ti ti-arrow-left" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i>Retour à l'app</button>';
+    }
+  }
+}
+
+function hideLandingFromApp(){
+  document.getElementById('landing-screen').style.display='none';
+  // Restore normal navbar buttons
+  const nav=document.querySelector('#landing-screen nav');
+  if(nav){
+    const btnZone=nav.querySelector('div:last-child');
+    if(btnZone){
+      btnZone.innerHTML='<button type="button" onclick="showAuthScreen('login')" style="background:none;border:none;cursor:pointer;font-size:13px;color:#5f5e5a;padding:8px 16px;border-radius:8px;font-weight:500">Connexion</button>'
+        +'<button type="button" onclick="showAuthScreen('signup')" style="background:#185FA5;color:#fff;border:none;cursor:pointer;font-size:13px;padding:9px 18px;border-radius:8px;font-weight:500">Commencer gratuitement</button>';
+    }
+  }
+}
+
+function showLanding(){
+  document.getElementById('landing-screen').style.display='flex';
+  document.getElementById('setup-screen').style.display='none';
+}
+
+function showAuthScreen(mode){
+  document.getElementById('landing-screen').style.display='none';
+  document.getElementById('setup-screen').style.display='flex';
+  switchAuthTab(mode||'login');
+}
+
 // Attach login page events after DOM ready
 document.addEventListener('DOMContentLoaded', function(){
   const tabLogin=document.getElementById('tab-login');
@@ -1961,13 +2127,14 @@ async function doLogout(){
   contacts=[];biens=[];docs=[];calEvents={};finance={ventes:[],locations:[]};
   document.getElementById('main-app').style.display='none';
   document.getElementById('agency-screen').style.display='none';
-  document.getElementById('setup-screen').style.display='flex';
+  document.getElementById('setup-screen').style.display='none';
   document.getElementById('login-email').value='';
   document.getElementById('login-pwd').value='';
   const btn=document.getElementById('btn-auth');
   if(btn){btn.style.display='flex';}
   document.getElementById('forgot-sent').style.display='none';
   switchAuthTab('login');
+  showLanding();
 }
 
 async function showKeySettings(){
@@ -2925,20 +3092,24 @@ async function saveFinanceSupabase(item){
 
 // Supabase session check on load
 (async function(){
-  // Ensure login screen is visible
-  const setupEl=document.getElementById('setup-screen');
-  if(setupEl)setupEl.style.display='flex';
   if(!supa){
-    console.warn('Supabase not available - running in offline mode');
+    console.warn('Supabase not available');
+    showLanding();
     return;
   }
   try {
     const {data:{session}}=await supa.auth.getSession();
     if(session&&session.user){
+      // Active session — skip landing and go straight to app
+      document.getElementById('landing-screen').style.display='none';
       await onAuthSuccess(session.user);
+    } else {
+      // No session — show landing
+      showLanding();
     }
   } catch(e) {
     console.error('Supabase session check failed:', e);
+    showLanding();
   }
 })();
 </script>
