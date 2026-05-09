@@ -2949,18 +2949,23 @@ let savingTable=null; // which table is being saved
 function setupRealtime(){
   if(realtimeChannel){supa.removeChannel(realtimeChannel);realtimeChannel=null;}
   if(!currentAgence.id)return;
-  realtimeChannel=supa.channel('agence-'+currentAgence.id,{config:{broadcast:{self:false}}})
-    .on('postgres_changes',{event:'*',schema:'public',table:'contacts'},function(payload){
-      if(payload.new?.agence_id===currentAgence.id||payload.old?.agence_id===currentAgence.id)reloadTable('contacts');
+  // Helper: check if event concerns current agence
+  function isMyAgence(payload){
+    const aid=payload.new?.agence_id||payload.old?.agence_id;
+    return !aid||aid===currentAgence.id; // if no agence_id in payload (DELETE), reload anyway
+  }
+  realtimeChannel=supa.channel('agence-'+currentAgence.id)
+    .on('postgres_changes',{event:'*',schema:'public',table:'contacts',filter:'agence_id=eq.'+currentAgence.id},function(payload){
+      if(savingTable!=='contacts')reloadTable('contacts');
     })
-    .on('postgres_changes',{event:'*',schema:'public',table:'biens'},function(payload){
-      if(payload.new?.agence_id===currentAgence.id||payload.old?.agence_id===currentAgence.id)reloadTable('biens');
+    .on('postgres_changes',{event:'*',schema:'public',table:'biens',filter:'agence_id=eq.'+currentAgence.id},function(payload){
+      if(savingTable!=='biens')reloadTable('biens');
     })
-    .on('postgres_changes',{event:'*',schema:'public',table:'documents'},function(payload){
-      if(payload.new?.agence_id===currentAgence.id||payload.old?.agence_id===currentAgence.id)reloadTable('documents');
+    .on('postgres_changes',{event:'*',schema:'public',table:'documents',filter:'agence_id=eq.'+currentAgence.id},function(payload){
+      if(savingTable!=='documents')reloadTable('documents');
     })
-    .on('postgres_changes',{event:'*',schema:'public',table:'evenements'},function(payload){
-      if(!realtimePaused&&(payload.new?.agence_id===currentAgence.id||payload.old?.agence_id===currentAgence.id))reloadTable('evenements');
+    .on('postgres_changes',{event:'*',schema:'public',table:'evenements',filter:'agence_id=eq.'+currentAgence.id},function(payload){
+      if(savingTable!=='evenements')reloadTable('evenements');
     })
     .on('postgres_changes',{event:'*',schema:'public',table:'finance',filter:'agence_id=eq.'+currentAgence.id},function(){
       if(!realtimePaused){
