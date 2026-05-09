@@ -2438,7 +2438,7 @@ async function showInvitations(){
   if(!pending||pending.length===0){notif('Aucune invitation en attente.');return;}
   let html='<div style="font-size:13px;color:var(--text2);margin-bottom:1rem">Vous avez été invité(e) à rejoindre ces agences :</div>';
   pending.forEach(function(inv,i){
-    html+='<div style="background:var(--surface2);border-radius:var(--radius);padding:12px;margin-bottom:8px">'
+    html+='<div id="inv-card-'+i+'" style="background:var(--surface2);border-radius:var(--radius);padding:12px;margin-bottom:8px">'
       +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">'
       +'<div>'
       +'<div style="font-weight:500">'+(inv.agences?.nom||'Agence')+'</div>'
@@ -2464,25 +2464,22 @@ async function showInvitations(){
         await supa.from('membres_agence').upsert({agence_id:inv.agence_id,user_id:currentUser.id,role:inv.role},{onConflict:'agence_id,user_id'});
         await supa.from('invitations').update({used:true}).eq('id',inv.id);
         await loadUserAgences();
-        const card=accept.closest('div[style*="background"]');
+        const card=document.getElementById('inv-card-'+i);
         if(card)card.remove();
         notif('Vous avez rejoint '+(inv.agences?.nom||"l'agence")+'!');
         await loadPendingInvitations();
-        const remaining=document.querySelectorAll('#modal-body div[style*="surface2"]');
-        if(!remaining||remaining.length===0)closeModal();
+        if(!document.querySelector('[id^="inv-card-"]'))closeModal();
       };
       const decline=document.createElement('button');
       decline.className='btn btn-sm';
       decline.innerHTML='<i class="ti ti-x"></i> Refuser';
       decline.onclick=async function(){
         await supa.from('invitations').update({used:true}).eq('id',inv.id);
-        const card=decline.closest('div[style*="surface2"]');
+        const card=document.getElementById('inv-card-'+i);
         if(card)card.remove();
         notif('Invitation refusée.','amber');
         await loadPendingInvitations();
-        // If no more invitations, close modal
-        const remaining=document.querySelectorAll('#modal-body div[style*="surface2"]');
-        if(!remaining||remaining.length===0)closeModal();
+        if(!document.querySelector('[id^="inv-card-"]'))closeModal();
       };
       wrap.appendChild(accept);
       wrap.appendChild(decline);
