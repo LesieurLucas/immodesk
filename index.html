@@ -1654,7 +1654,9 @@ function renderIAPages(){
   const bienSel=document.getElementById('ai-bien-select');
   if(bienSel){
     bienSel.innerHTML='<option value="">— Saisie manuelle —</option>'
-      +biens.map(function(b,i){return '<option value="'+i+'">'+b.nom+' — '+b.type+(b.ville?' ('+b.ville+')'):'')+'</option>';}).join('');
+      +(biens||[]).map(function(b,i){
+        return '<option value="'+i+'">'+b.nom+' — '+b.type+(b.ville?' ('+b.ville+')':'')+'</option>';
+      }).join('');
   }
   // Populate contacts selector in relances
   const contactSel=document.getElementById('r-contact');
