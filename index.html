@@ -255,6 +255,10 @@
         <button class="btn btn-hide" onclick="openAddContact()"><i class="ti ti-user-plus"></i> Contact</button>
         <button class="btn btn-primary" onclick="openAddBien()"><i class="ti ti-home-plus"></i> Bien</button>
         <button class="btn" id="btn-api-key" onclick="showKeySettings()" title="Clé API" style="padding:7px 10px;display:none"><i class="ti ti-key"></i></button>
+        <button class="btn" id="btn-invitations" type="button" onclick="showInvitations()" title="Invitations" style="padding:7px 10px;display:none;position:relative">
+          <i class="ti ti-bell"></i>
+          <span id="inv-badge" style="position:absolute;top:4px;right:4px;background:#E24B4A;color:#fff;border-radius:50%;width:14px;height:14px;font-size:9px;display:flex;align-items:center;justify-content:center;font-weight:600"></span>
+        </button>
         <div id="admin-badge" style="display:none;padding:4px 10px;background:#FCEBEB;color:#791F1F;border-radius:var(--radius);font-size:11px;font-weight:600;cursor:pointer" onclick="showPage('admin',this)" title="Panneau admin"><i class="ti ti-shield" style="font-size:13px;vertical-align:-2px"></i> Admin</div>
       </div>
     </div>
@@ -1994,45 +1998,101 @@ async function sendInvitation(){
   const email=(emailEl?.value||'').trim().toLowerCase();
   const role=document.getElementById('inv-role')?.value||'agent';
   if(!email){showInvError('Email requis.');return;}
-  if(res)res.style.display='none';
+  if(res){res.style.display='none';res.style.background='';res.style.color='';}
 
-  // Try to find existing profile
+  // Check not already member
   const {data:profiles}=await supa.from('profiles').select('id,email,nom').eq('email',email);
-  
-  if(profiles&&profiles.length>0){
-    // User exists — check not already member
-    const target=profiles[0];
-    const {data:existing}=await supa.from('membres_agence').select('id').eq('agence_id',currentAgence.id).eq('user_id',target.id);
-    if(existing&&existing.length>0){showInvError(email+' est déjà membre de cette agence.');return;}
-    // Add directly
-    const {error}=await supa.from('membres_agence').insert({agence_id:currentAgence.id,user_id:target.id,role:role});
-    if(error){showInvError('Erreur : '+error.message);return;}
-    if(res){res.style.display='block';res.innerHTML='<i class="ti ti-check" style="color:var(--green);margin-right:6px"></i><strong>'+(target.nom||email)+'</strong> ajouté à l\'équipe en tant que <strong>'+role+'</strong>.';}
-    notif((target.nom||email)+' ajouté à l\'équipe !');
-    renderEquipe();
-  } else {
-    // User doesn't exist — generate invite link
-    const {data:inv,error}=await supa.from('invitations').insert({
-      agence_id:currentAgence.id,email:email,role:role,created_by:currentUser.id
-    }).select().single();
-    if(error){showInvError('Erreur : '+error.message);return;}
-    const link=window.location.origin+window.location.pathname+'?invite='+inv.token;
-    if(res){
-      res.style.display='block';
-      res.innerHTML='<div style="margin-bottom:6px;font-size:12px"><i class="ti ti-info-circle" style="color:var(--amber);margin-right:4px"></i>Aucun compte trouvé — lien d\'invitation créé :</div>'
-        +'<div style="background:var(--surface);border-radius:4px;padding:6px 8px;font-family:monospace;font-size:11px;margin-bottom:8px;word-break:break-all">'+link+'</div>'
-        +'<button class="btn btn-sm" type="button" id="copy-inv-btn"><i class="ti ti-copy"></i> Copier</button>'
-        +'<div style="font-size:11px;color:var(--text3);margin-top:6px">Valable 7 jours. En cliquant ce lien, la personne sera invitée à créer un compte et rejoindra automatiquement votre agence.</div>';
-      document.getElementById('copy-inv-btn')?.addEventListener('click',function(){
-        navigator.clipboard?.writeText(link).then(function(){notif('Lien copié !');});
-      });
-    }
+  if(!profiles||profiles.length===0){showInvError('Aucun compte trouvé pour '+email+'. Utilisez le lien pour inviter quelqu\'un sans compte.');return;}
+  const target=profiles[0];
+
+  const {data:existing}=await supa.from('membres_agence').select('id').eq('agence_id',currentAgence.id).eq('user_id',target.id);
+  if(existing&&existing.length>0){showInvError(email+' est déjà membre de cette agence.');return;}
+
+  // Check no pending invitation already
+  const {data:pendingInv}=await supa.from('invitations').select('id').eq('agence_id',currentAgence.id).eq('email',email).eq('used',false);
+  if(pendingInv&&pendingInv.length>0){showInvError('Une invitation est déjà en attente pour '+email+'.');return;}
+
+  // Create pending invitation (user must accept)
+  const {data:inv,error}=await supa.from('invitations').insert({
+    agence_id:currentAgence.id,email:email,role:role,created_by:currentUser.id
+  }).select().single();
+  if(error){showInvError('Erreur : '+error.message);return;}
+
+  if(res){
+    res.style.display='block';
+    res.innerHTML='<i class="ti ti-clock" style="color:var(--amber);margin-right:6px"></i>'
+      +'Invitation envoyée à <strong>'+(target.nom||email)+'</strong>. Elle apparaîtra dans ses notifications lors de sa prochaine connexion.';
   }
+  notif('Invitation envoyée à '+(target.nom||email)+'.');
 }
+
 function showInvError(msg){
   const res=document.getElementById('inv-link-result');
-  if(res){res.style.display='block';res.innerHTML='<i class="ti ti-alert-circle" style="color:var(--red);margin-right:6px"></i>'+msg;res.style.background='var(--red-bg)';res.style.color='var(--red-text)';}
-  notif(msg,'amber');
+  if(res){res.style.display='block';res.style.background='var(--red-bg)';res.style.color='var(--red-text)';res.innerHTML='<i class="ti ti-alert-circle" style="margin-right:6px"></i>'+msg;}
+}
+
+async function loadPendingInvitations(){
+  if(!currentUser.email)return;
+  const {data}=await supa.from('invitations')
+    .select('*,agences(nom)')
+    .eq('email',currentUser.email)
+    .eq('used',false);
+  const pending=(data||[]).filter(function(inv){return new Date(inv.expires_at)>new Date();});
+  const btn=document.getElementById('btn-invitations');
+  const badge=document.getElementById('inv-badge');
+  if(btn)btn.style.display=pending.length>0?'flex':'none';
+  if(badge)badge.textContent=pending.length>0?pending.length:'';
+  return pending;
+}
+
+async function showInvitations(){
+  const pending=await loadPendingInvitations();
+  if(!pending||pending.length===0){notif('Aucune invitation en attente.');return;}
+  let html='<div style="font-size:13px;color:var(--text2);margin-bottom:1rem">Vous avez été invité(e) à rejoindre ces agences :</div>';
+  pending.forEach(function(inv,i){
+    html+='<div style="background:var(--surface2);border-radius:var(--radius);padding:12px;margin-bottom:8px">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">'
+      +'<div>'
+      +'<div style="font-weight:500">'+(inv.agences?.nom||'Agence')+'</div>'
+      +'<div style="font-size:12px;color:var(--text3);margin-top:2px">Rôle proposé : <span class="badge badge-blue" style="font-size:10px">'+inv.role+'</span></div>'
+      +'</div>'
+      +'<div style="display:flex;gap:6px" id="inv-actions-'+i+'"></div>'
+      +'</div></div>';
+  });
+  openModal('Invitations reçues',html,'invitations');
+  // Remove default save button
+  const footer=document.querySelector('.modal-footer');
+  if(footer)footer.innerHTML='<button class="btn" onclick="closeModal()">Fermer</button>';
+  // Attach accept/decline buttons via DOM
+  setTimeout(function(){
+    pending.forEach(function(inv,i){
+      const wrap=document.getElementById('inv-actions-'+i);
+      if(!wrap)return;
+      const accept=document.createElement('button');
+      accept.className='btn btn-primary btn-sm';
+      accept.innerHTML='<i class="ti ti-check"></i> Accepter';
+      accept.onclick=async function(){
+        accept.disabled=true;accept.textContent='...';
+        await supa.from('membres_agence').upsert({agence_id:inv.agence_id,user_id:currentUser.id,role:inv.role},{onConflict:'agence_id,user_id'});
+        await supa.from('invitations').update({used:true}).eq('id',inv.id);
+        await loadUserAgences();
+        closeModal();
+        notif('Vous avez rejoint '+( inv.agences?.nom||'l\'agence')+'!');
+        await loadPendingInvitations();
+      };
+      const decline=document.createElement('button');
+      decline.className='btn btn-sm';
+      decline.innerHTML='<i class="ti ti-x"></i> Refuser';
+      decline.onclick=async function(){
+        await supa.from('invitations').update({used:true}).eq('id',inv.id);
+        wrap.closest('div[style]').remove();
+        notif('Invitation refusée.','amber');
+        await loadPendingInvitations();
+      };
+      wrap.appendChild(accept);
+      wrap.appendChild(decline);
+    });
+  },80);
 }
 
 async function renderEquipe(){
@@ -2593,6 +2653,8 @@ function initApp(){
   // Show agence name in sidebar logo
   const agNomEl=document.getElementById('sidebar-agence-nom');
   if(agNomEl)agNomEl.innerHTML=currentAgence.nom+'<i class="ti ti-switch-horizontal" style="font-size:12px;opacity:.5"></i>';
+  // Check pending invitations
+  loadPendingInvitations();
 }
 function resetDocs(){
   docs=[];
