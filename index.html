@@ -2893,6 +2893,7 @@ async function saveCommission(){
 
 // === REALTIME ===
 let realtimeChannel=null;
+let realtimePaused=false;
 
 function setupRealtime(){
   if(realtimeChannel){supa.removeChannel(realtimeChannel);}
@@ -2923,6 +2924,7 @@ function setupRealtime(){
 }
 
 async function reloadTable(table){
+  if(realtimePaused)return; // skip reload during active save
   const aid=currentAgence.id;
   if(table==='contacts'){
     const {data}=await supa.from('contacts').select('*').eq('agence_id',aid);
@@ -3075,22 +3077,28 @@ function save(){
 
 // Override individual save functions to use Supabase
 async function saveContactSupabase(c){
+  realtimePaused=true;
   const aid=currentAgence.id;
-  if(c._id){
-    await dbUpdate('contacts',c._id,{prenom:c.prenom,nom:c.nom,type:c.type,tel:c.tel,email:c.email||'',budget:c.budget,secteur:c.secteur,statut:c.statut,user_id:currentUser.id,agence_id:aid});
-  } else {
-    const row=await dbInsert('contacts',{user_id:currentUser.id,agence_id:aid,prenom:c.prenom,nom:c.nom,type:c.type,tel:c.tel,email:c.email||'',budget:c.budget,secteur:c.secteur,statut:c.statut});
-    if(row)c._id=row.id;
-  }
+  try{
+    if(c._id){
+      await dbUpdate('contacts',c._id,{prenom:c.prenom,nom:c.nom,type:c.type,tel:c.tel,email:c.email||'',budget:c.budget,secteur:c.secteur,statut:c.statut,user_id:currentUser.id,agence_id:aid});
+    } else {
+      const row=await dbInsert('contacts',{user_id:currentUser.id,agence_id:aid,prenom:c.prenom,nom:c.nom,type:c.type,tel:c.tel,email:c.email||'',budget:c.budget,secteur:c.secteur,statut:c.statut});
+      if(row)c._id=row.id;
+    }
+  }finally{setTimeout(function(){realtimePaused=false;},1000);}
 }
 async function saveBienSupabase(b){
+  realtimePaused=true;
   const aid=currentAgence.id;
-  if(b._id){
-    await dbUpdate('biens',b._id,{nom:b.nom,type:b.type,surface:b.surface,prix:b.prix,ville:b.ville,statut:b.statut,user_id:currentUser.id,agence_id:aid});
-  } else {
-    const row=await dbInsert('biens',{user_id:currentUser.id,agence_id:aid,nom:b.nom,type:b.type,surface:b.surface,prix:b.prix,ville:b.ville,statut:b.statut});
-    if(row)b._id=row.id;
-  }
+  try{
+    if(b._id){
+      await dbUpdate('biens',b._id,{nom:b.nom,type:b.type,surface:b.surface,prix:b.prix,ville:b.ville,statut:b.statut,user_id:currentUser.id,agence_id:aid});
+    } else {
+      const row=await dbInsert('biens',{user_id:currentUser.id,agence_id:aid,nom:b.nom,type:b.type,surface:b.surface,prix:b.prix,ville:b.ville,statut:b.statut});
+      if(row)b._id=row.id;
+    }
+  }finally{setTimeout(function(){realtimePaused=false;},1000);}
 }
 async function saveDocSupabase(d){
   const aid=currentAgence.id;
@@ -3132,8 +3140,11 @@ async function saveParamsSupabase(){
 
 // Override saveFinance
 async function saveFinanceSupabase(item){
+  realtimePaused=true;
   const row={user_id:currentUser.id,agence_id:currentAgence.id,type:item.type,bien:item.bien||'',agent:item.agent||'',date:item.date||'',statut:item.statut||'En attente',notes:item.notes||'',com_calc:item.com_calc||'',auto:item._auto||false,prix:item.prix||'',taux1:item.taux1,taux2:item.taux2,taux3:item.taux3,surface:item.surface||'',loyer:item.loyer||'',rate1:item.rate1,rate2:item.rate2,rate3:item.rate3};
-  if(item._id){await dbUpdate('finance',item._id,row);} else {const r=await dbInsert('finance',row);if(r)item._id=r.id;}
+  try{
+    if(item._id){await dbUpdate('finance',item._id,row);} else {const r=await dbInsert('finance',row);if(r)item._id=r.id;}
+  }finally{setTimeout(function(){realtimePaused=false;},1000);}
 }
 
 // Supabase session check on load
