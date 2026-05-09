@@ -932,12 +932,12 @@ async function saveBien(){
   if(!nom){alert('Nom du bien requis');return;}
   const d={nom,type:document.getElementById('m-btype').value,surface:document.getElementById('m-bsurf').value||'—',prix:document.getElementById('m-bprix').value||'—',ville:document.getElementById('m-bville').value||'—',statut:document.getElementById('m-bstatut').value};
   const oldNom=mMode==='edit-bien'?biens[mIdx]?.nom:null;
-  if(mMode==='add-bien'){biens.push(d);}
-  else{biens[mIdx]=d;}
-  if(typeof finance!=='undefined') syncBienToFinance(d, oldNom);
-  updateStats();renderBiens();renderDashboard();closeModal();
-  // Save to Supabase in background
-  saveBienSupabase(d).then(function(){notif(mMode==='add-bien'?'Bien ajouté.':'Bien mis à jour.');}).catch(function(e){notif('Erreur sauvegarde : '+e.message,'amber');});
+  const isAdd=mMode==='add-bien';
+  if(isAdd){biens.push(d);}else{biens[mIdx]=d;}
+  syncBienToFinance(d,oldNom);
+  closeModal();
+  updateStats();renderBiens();renderDashboard();
+  saveBienSupabase(d).then(function(){notif(isAdd?'Bien ajouté.':'Bien mis à jour.');}).catch(function(e){notif('Erreur : '+e.message,'amber');});
 }
 async function deleteBien(idx){
   const b=biens[idx];
@@ -1765,8 +1765,9 @@ async function onAuthSuccess(user){
   const urlParams=new URLSearchParams(window.location.search);
   const inviteToken=urlParams.get('invite');
   if(inviteToken){
-    await acceptInvitation(inviteToken);
     window.history.replaceState({},'',window.location.pathname);
+    const autoSelected=await acceptInvitation(inviteToken);
+    if(autoSelected)return; // already in app
   }
   // Load user's agencies
   await loadUserAgences();
@@ -1860,13 +1861,19 @@ async function selectAgence(ag){
 }
 
 async function acceptInvitation(token){
-  const {data:inv}=await supa.from('invitations').select('*').eq('token',token).eq('used',false).single();
-  if(!inv)return notif('Invitation invalide ou expirée.','amber');
+  const {data:inv,error}=await supa.from('invitations').select('*').eq('token',token).eq('used',false).single();
+  if(error||!inv){notif('Invitation invalide ou expirée.','amber');return;}
   // Add user to agency
   await supa.from('membres_agence').upsert({agence_id:inv.agence_id,user_id:currentUser.id,role:inv.role},{onConflict:'agence_id,user_id'});
-  // Mark invitation as used
   await supa.from('invitations').update({used:true}).eq('id',inv.id);
   notif('Vous avez rejoint l\'agence avec succès !');
+  // Auto-select this specific agency — no choice shown
+  await loadUserAgences();
+  const joinedAgence=userAgences.find(function(a){return a.id===inv.agence_id;});
+  if(joinedAgence){
+    await selectAgence(joinedAgence);
+    return true; // signal that we auto-selected
+  }
 }
 
 async function doLogout(){
@@ -1982,36 +1989,50 @@ function openInviteForm(){
 }
 
 async function sendInvitation(){
-  const email=(document.getElementById('inv-email').value||'').trim().toLowerCase();
-  const role=document.getElementById('inv-role').value;
-  if(!email)return notif('Email requis.','amber');
-
-  // Check if user exists
-  const {data:existingProfiles}=await supa.from('profiles').select('id,email,nom').eq('email',email);
-  if(!existingProfiles||existingProfiles.length===0){
-    return notif('Aucun compte trouvé pour '+email+'. Cette personne doit d\'abord créer un compte.','amber');
-  }
-  const targetProfile=existingProfiles[0];
-
-  // Check not already member
-  const {data:existing}=await supa.from('membres_agence').select('id').eq('agence_id',currentAgence.id).eq('user_id',targetProfile.id);
-  if(existing&&existing.length>0){
-    return notif(targetProfile.nom||email+' est déjà membre de cette agence.','amber');
-  }
-
-  // Add directly to agence (no token needed since user exists)
-  const {error}=await supa.from('membres_agence').insert({agence_id:currentAgence.id,user_id:targetProfile.id,role:role});
-  if(error)return notif('Erreur : '+error.message,'amber');
-
+  const emailEl=document.getElementById('inv-email');
   const res=document.getElementById('inv-link-result');
-  if(res){
-    res.style.display='block';
-    res.innerHTML='<i class="ti ti-check" style="color:var(--green);margin-right:6px"></i>'
-      +'<strong>'+(targetProfile.nom||email)+'</strong> a été ajouté à l\'agence en tant que <strong>'+role+'</strong>.';
+  const email=(emailEl?.value||'').trim().toLowerCase();
+  const role=document.getElementById('inv-role')?.value||'agent';
+  if(!email){showInvError('Email requis.');return;}
+  if(res)res.style.display='none';
+
+  // Try to find existing profile
+  const {data:profiles}=await supa.from('profiles').select('id,email,nom').eq('email',email);
+  
+  if(profiles&&profiles.length>0){
+    // User exists — check not already member
+    const target=profiles[0];
+    const {data:existing}=await supa.from('membres_agence').select('id').eq('agence_id',currentAgence.id).eq('user_id',target.id);
+    if(existing&&existing.length>0){showInvError(email+' est déjà membre de cette agence.');return;}
+    // Add directly
+    const {error}=await supa.from('membres_agence').insert({agence_id:currentAgence.id,user_id:target.id,role:role});
+    if(error){showInvError('Erreur : '+error.message);return;}
+    if(res){res.style.display='block';res.innerHTML='<i class="ti ti-check" style="color:var(--green);margin-right:6px"></i><strong>'+(target.nom||email)+'</strong> ajouté à l\'équipe en tant que <strong>'+role+'</strong>.';}
+    notif((target.nom||email)+' ajouté à l\'équipe !');
+    renderEquipe();
+  } else {
+    // User doesn't exist — generate invite link
+    const {data:inv,error}=await supa.from('invitations').insert({
+      agence_id:currentAgence.id,email:email,role:role,created_by:currentUser.id
+    }).select().single();
+    if(error){showInvError('Erreur : '+error.message);return;}
+    const link=window.location.origin+window.location.pathname+'?invite='+inv.token;
+    if(res){
+      res.style.display='block';
+      res.innerHTML='<div style="margin-bottom:6px;font-size:12px"><i class="ti ti-info-circle" style="color:var(--amber);margin-right:4px"></i>Aucun compte trouvé — lien d\'invitation créé :</div>'
+        +'<div style="background:var(--surface);border-radius:4px;padding:6px 8px;font-family:monospace;font-size:11px;margin-bottom:8px;word-break:break-all">'+link+'</div>'
+        +'<button class="btn btn-sm" type="button" id="copy-inv-btn"><i class="ti ti-copy"></i> Copier</button>'
+        +'<div style="font-size:11px;color:var(--text3);margin-top:6px">Valable 7 jours. En cliquant ce lien, la personne sera invitée à créer un compte et rejoindra automatiquement votre agence.</div>';
+      document.getElementById('copy-inv-btn')?.addEventListener('click',function(){
+        navigator.clipboard?.writeText(link).then(function(){notif('Lien copié !');});
+      });
+    }
   }
-  notif((targetProfile.nom||email)+' ajouté à l\'équipe !');
-  // Refresh equipe list
-  renderEquipe();
+}
+function showInvError(msg){
+  const res=document.getElementById('inv-link-result');
+  if(res){res.style.display='block';res.innerHTML='<i class="ti ti-alert-circle" style="color:var(--red);margin-right:6px"></i>'+msg;res.style.background='var(--red-bg)';res.style.color='var(--red-text)';}
+  notif(msg,'amber');
 }
 
 async function renderEquipe(){
@@ -2069,6 +2090,447 @@ async function renderEquipe(){
 
 function openAddMembre(){
   notif('Utilisez le bouton "Inviter" pour ajouter des membres via email.','amber');
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════
+// === PARAMS ===
+// ═══════════════════════════════════════════════════════════════════════
+let params={
+  tranchesVente:[{max:150000,taux:5},{max:300000,taux:4},{max:null,taux:3}],
+  tranchesLoc:[{max:30,rate:12},{max:80,rate:10},{max:null,rate:8}],
+  objectif:50000
+};
+
+function getTrancheTaux(prix){
+  const ts=params.tranchesVente||[];
+  for(let i=0;i<ts.length;i++){if(ts[i].max===null||prix<=ts[i].max)return ts[i].taux||0;}
+  return ts.length?ts[ts.length-1].taux:5;
+}
+function getTrancheRate(surface){
+  const ts=params.tranchesLoc||[];
+  for(let i=0;i<ts.length;i++){if(ts[i].max===null||surface<=ts[i].max)return ts[i].rate||0;}
+  return ts.length?ts[ts.length-1].rate:10;
+}
+function calcVenteCommission(prix){return Math.round(prix*getTrancheTaux(prix)/100);}
+function calcLocCommission(surface){return Math.round(surface*getTrancheRate(surface));}
+
+function renderTranchesVente(){
+  const container=document.getElementById('param-tranches-vente');
+  if(!container)return;
+  container.innerHTML='';
+  (params.tranchesVente||[]).forEach(function(t,i){
+    const isLast=(i===params.tranchesVente.length-1);
+    const row=document.createElement('div');
+    row.style.cssText='display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:center;margin-bottom:8px;background:var(--surface2);border-radius:var(--radius);padding:10px 12px';
+    const prevMax=i>0?(params.tranchesVente[i-1].max||0):0;
+    row.innerHTML='<div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">'+(i===0?'Jusqu\'à':'De '+prevMax.toLocaleString('fr-FR')+' € jusqu\'à')+'</label>'
+      +'<div style="display:flex;align-items:center;gap:6px">'
+      +(isLast?'<span style="font-size:13px;color:var(--text3)">Illimité</span>':'<input type="number" class="tv-max" data-idx="'+i+'" value="'+(t.max||'')+'" placeholder="300000" oninput="previewParamVente()" style="width:120px"> <span style="font-size:12px">€</span>')
+      +'</div></div>'
+      +'<div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">Taux</label>'
+      +'<div style="display:flex;align-items:center;gap:6px"><input type="number" class="tv-taux" data-idx="'+i+'" value="'+(t.taux||0)+'" step="0.1" min="0" max="100" oninput="previewParamVente()" style="width:80px"> <span>%</span></div></div>'
+      +(params.tranchesVente.length>1?'<button type="button" onclick="removeTranche(\'vente\','+i+')" class="btn btn-sm btn-danger" style="align-self:flex-end"><i class="ti ti-trash"></i></button>':'<div></div>');
+    container.appendChild(row);
+  });
+}
+function renderTranchesLoc(){
+  const container=document.getElementById('param-tranches-loc');
+  if(!container)return;
+  container.innerHTML='';
+  (params.tranchesLoc||[]).forEach(function(t,i){
+    const isLast=(i===params.tranchesLoc.length-1);
+    const row=document.createElement('div');
+    row.style.cssText='display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:center;margin-bottom:8px;background:var(--surface2);border-radius:var(--radius);padding:10px 12px';
+    const prevMax=i>0?(params.tranchesLoc[i-1].max||0):0;
+    row.innerHTML='<div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">'+(i===0?'Jusqu\'à':'De '+prevMax+' m² jusqu\'à')+'</label>'
+      +'<div style="display:flex;align-items:center;gap:6px">'
+      +(isLast?'<span style="font-size:13px;color:var(--text3)">Illimité</span>':'<input type="number" class="tl-max" data-idx="'+i+'" value="'+(t.max||'')+'" placeholder="80" oninput="previewParamLoc()" style="width:100px"> <span>m²</span>')
+      +'</div></div>'
+      +'<div><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">Tarif</label>'
+      +'<div style="display:flex;align-items:center;gap:6px"><input type="number" class="tl-rate" data-idx="'+i+'" value="'+(t.rate||0)+'" step="0.1" min="0" oninput="previewParamLoc()" style="width:80px"> <span>€/m²</span></div></div>'
+      +(params.tranchesLoc.length>1?'<button type="button" onclick="removeTranche(\'location\','+i+')" class="btn btn-sm btn-danger" style="align-self:flex-end"><i class="ti ti-trash"></i></button>':'<div></div>');
+    container.appendChild(row);
+  });
+}
+function addTranche(type){
+  if(type==='vente'){
+    const last=params.tranchesVente[params.tranchesVente.length-1];
+    const prevMax=params.tranchesVente.length>1?params.tranchesVente[params.tranchesVente.length-2].max:0;
+    last.max=(prevMax||150000)*2;
+    params.tranchesVente.push({max:null,taux:last.taux});
+    renderTranchesVente();previewParamVente();
+  } else {
+    const last=params.tranchesLoc[params.tranchesLoc.length-1];
+    const prevMax=params.tranchesLoc.length>1?params.tranchesLoc[params.tranchesLoc.length-2].max:0;
+    last.max=(prevMax||30)*2;
+    params.tranchesLoc.push({max:null,rate:last.rate});
+    renderTranchesLoc();previewParamLoc();
+  }
+}
+function removeTranche(type,idx){
+  if(type==='vente'){
+    if(params.tranchesVente.length<=1)return;
+    params.tranchesVente.splice(idx,1);
+    params.tranchesVente[params.tranchesVente.length-1].max=null;
+    renderTranchesVente();
+  } else {
+    if(params.tranchesLoc.length<=1)return;
+    params.tranchesLoc.splice(idx,1);
+    params.tranchesLoc[params.tranchesLoc.length-1].max=null;
+    renderTranchesLoc();
+  }
+  previewParamVente();previewParamLoc();
+}
+function previewParamVente(){
+  const liveTranches=(params.tranchesVente||[]).map(function(t,i){
+    const maxEl=document.querySelector('.tv-max[data-idx="'+i+'"]');
+    const tauxEl=document.querySelector('.tv-taux[data-idx="'+i+'"]');
+    return {max:maxEl?parseFloat(maxEl.value)||null:t.max,taux:tauxEl?parseFloat(tauxEl.value)||0:t.taux};
+  });
+  const ex=[100000,250000,500000];
+  const preview=ex.map(function(p){
+    let t=liveTranches.length?liveTranches[liveTranches.length-1].taux:5;
+    for(let i=0;i<liveTranches.length;i++){if(liveTranches[i].max===null||p<=liveTranches[i].max){t=liveTranches[i].taux;break;}}
+    return p.toLocaleString('fr-FR')+'€ → '+(Math.round(p*t/100)).toLocaleString('fr-FR')+'€ ('+t+'%)';
+  }).join(' · ');
+  const el=document.getElementById('param-vente-preview');
+  if(el)el.textContent='Exemples : '+preview;
+}
+function previewParamLoc(){
+  const liveTranches=(params.tranchesLoc||[]).map(function(t,i){
+    const maxEl=document.querySelector('.tl-max[data-idx="'+i+'"]');
+    const rateEl=document.querySelector('.tl-rate[data-idx="'+i+'"]');
+    return {max:maxEl?parseFloat(maxEl.value)||null:t.max,rate:rateEl?parseFloat(rateEl.value)||0:t.rate};
+  });
+  const ex=[25,55,100];
+  const preview=ex.map(function(s){
+    let r=liveTranches.length?liveTranches[liveTranches.length-1].rate:10;
+    for(let i=0;i<liveTranches.length;i++){if(liveTranches[i].max===null||s<=liveTranches[i].max){r=liveTranches[i].rate;break;}}
+    return s+'m² → '+(Math.round(s*r)).toLocaleString('fr-FR')+'€ ('+r+'€/m²)';
+  }).join(' · ');
+  const el=document.getElementById('param-loc-preview');
+  if(el)el.textContent='Exemples : '+preview;
+}
+async function saveParamVentes(){
+  const maxInputs=document.querySelectorAll('.tv-max');
+  const tauxInputs=document.querySelectorAll('.tv-taux');
+  params.tranchesVente=Array.from(tauxInputs).map(function(inp,i){
+    const maxEl=maxInputs[i];
+    return {max:maxEl?parseFloat(maxEl.value)||null:null,taux:parseFloat(inp.value)||0};
+  });
+  if(params.tranchesVente.length)params.tranchesVente[params.tranchesVente.length-1].max=null;
+  await saveParamsSupabase();notif('Barème ventes enregistré.');
+}
+async function saveParamLocs(){
+  const maxInputs=document.querySelectorAll('.tl-max');
+  const rateInputs=document.querySelectorAll('.tl-rate');
+  params.tranchesLoc=Array.from(rateInputs).map(function(inp,i){
+    const maxEl=maxInputs[i];
+    return {max:maxEl?parseFloat(maxEl.value)||null:null,rate:parseFloat(inp.value)||0};
+  });
+  if(params.tranchesLoc.length)params.tranchesLoc[params.tranchesLoc.length-1].max=null;
+  await saveParamsSupabase();notif('Barème locations enregistré.');
+}
+async function saveParamObjectif(){
+  const v=parseFloat(document.getElementById('param-objectif')?.value||50000);
+  params.objectif=v;
+  await saveParamsSupabase();notif('Objectif enregistré.');
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// === FINANCE ===
+// ═══════════════════════════════════════════════════════════════════════
+let finance={ventes:[],locations:[]};
+const FIN_STATUTS=['Payée','En attente','Annulée'];
+const FIN_BADGE={'Payée':'badge-green','En attente':'badge-amber','Annulée':'badge-red'};
+let finTab='ventes';
+
+function finMontant(c){
+  if(c.com_calc&&parseFloat(c.com_calc)>0)return Math.round(parseFloat(c.com_calc));
+  if(c.type==='vente')return calcVenteCommission(parseFloat(c.prix)||0);
+  return calcLocCommission(parseFloat(c.surface)||0);
+}
+
+function finSwitchTab(tab){
+  finTab=tab;
+  const vDiv=document.getElementById('fin-tab-ventes');
+  const lDiv=document.getElementById('fin-tab-locations');
+  if(vDiv)vDiv.classList.toggle('hidden',tab!=='ventes');
+  if(lDiv)lDiv.classList.toggle('hidden',tab!=='locations');
+  const btnV=document.getElementById('fin-btn-ventes');
+  const btnL=document.getElementById('fin-btn-locations');
+  if(btnV){btnV.className=tab==='ventes'?'btn btn-primary':'btn';btnV.style.cssText='flex:1;justify-content:center;font-size:14px;padding:10px';}
+  if(btnL){btnL.className=tab==='locations'?'btn btn-primary':'btn';btnL.style.cssText='flex:1;justify-content:center;font-size:14px;padding:10px';}
+}
+
+function autoImportBiens(){
+  const venduStatuts=['Vendu','Acte final'];
+  const locStatuts=['En location'];
+  finance.ventes=finance.ventes.filter(function(v){
+    if(!v._auto)return true;
+    const b=biens.find(function(b){return b.nom===v.bien;});
+    return b&&venduStatuts.includes(b.statut);
+  });
+  finance.locations=finance.locations.filter(function(l){
+    if(!l._auto)return true;
+    const b=biens.find(function(b){return b.nom===l.bien;});
+    return b&&locStatuts.includes(b.statut);
+  });
+  biens.forEach(function(b){
+    if(venduStatuts.includes(b.statut)){
+      const already=finance.ventes.find(function(v){return v.bien===b.nom&&v._auto;});
+      if(!already){
+        const prix=parseFloat((b.prix||'').replace(/[^0-9.]/g,''))||0;
+        const item={type:'vente',bien:b.nom,agent:currentUser.nom||currentUser.email,
+          date:new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}),
+          prix:String(prix),statut:'En attente',notes:'Importé automatiquement',com_calc:'',_auto:true};
+        finance.ventes.push(item);
+        saveFinanceSupabase(item);
+      }
+    }
+    if(locStatuts.includes(b.statut)){
+      const already=finance.locations.find(function(l){return l.bien===b.nom&&l._auto;});
+      if(!already){
+        const loyer=parseFloat((b.prix||'').replace(/[^0-9.]/g,''))||0;
+        const surface=parseFloat(b.surface)||0;
+        const item={type:'location',bien:b.nom,agent:currentUser.nom||currentUser.email,
+          date:new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}),
+          loyer:String(loyer),surface:String(surface),statut:'En attente',notes:'Importé automatiquement',com_calc:'',_auto:true};
+        finance.locations.push(item);
+        saveFinanceSupabase(item);
+      }
+    }
+  });
+}
+
+function syncBienToFinance(b,oldNom){
+  const prix=parseFloat((b.prix||'').replace(/[^0-9.]/g,''))||0;
+  const surface=parseFloat(b.surface)||0;
+  const matchName=oldNom||b.nom;
+  finance.ventes.forEach(function(v){
+    if(v._auto&&v.bien===matchName){v.bien=b.nom;if(!v.com_calc||parseFloat(v.com_calc)===0)v.prix=String(prix);}
+  });
+  finance.locations.forEach(function(l){
+    if(l._auto&&l.bien===matchName){l.bien=b.nom;if(!l.com_calc||parseFloat(l.com_calc)===0){l.loyer=String(prix);l.surface=String(surface);}}
+  });
+}
+
+function renderFinance(){
+  autoImportBiens();
+  const ventes=finance.ventes||[];
+  const locations=finance.locations||[];
+  const now=new Date();
+  const curMonth=now.getMonth();
+  const curYear=now.getFullYear();
+  const fmt=function(n){return Math.round(n).toLocaleString('fr-FR')+' €';};
+  function pd(str){if(!str)return null;const p=str.split('/');return p.length===3?new Date(parseInt(p[2]),parseInt(p[1])-1,parseInt(p[0])):null;}
+  function ism(str){const d=pd(str);return d&&d.getMonth()===curMonth&&d.getFullYear()===curYear;}
+  function isy2(str){const d=pd(str);return d&&d.getFullYear()===curYear;}
+  const ventesOk=ventes.filter(function(v){return v.statut!=='Annulée';});
+  const ventesMois=ventesOk.filter(function(v){return ism(v.date);});
+  const ventesAnnee=ventesOk.filter(function(v){return isy2(v.date);});
+  const totalVentesMois=ventesMois.reduce(function(s,v){return s+finMontant(v);},0);
+  const totalVentesAnnee=ventesAnnee.reduce(function(s,v){return s+finMontant(v);},0);
+  const locsOk=locations.filter(function(l){return l.statut!=='Annulée';});
+  const locsMois=locsOk.filter(function(l){return ism(l.date);});
+  const locsAnnee=locsOk.filter(function(l){return isy2(l.date);});
+  const totalLocsMois=locsMois.reduce(function(s,l){return s+finMontant(l);},0);
+  const totalLocsAnnee=locsAnnee.reduce(function(s,l){return s+finMontant(l)*12;},0);
+  const caMois=totalVentesMois+totalLocsMois;
+  const caAnnee=totalVentesAnnee+totalLocsAnnee;
+  const objectif=params.objectif||50000;
+  const pct=Math.min(100,Math.round(caAnnee/objectif*100));
+  const set=function(id,v){const el=document.getElementById(id);if(el)el.textContent=v;};
+  set('fin-ca-mois',fmt(caMois));
+  set('fin-ca-mois-sub',ventesMois.length+' vente(s) · '+locsMois.length+' loc.');
+  set('fin-ventes-mois',fmt(totalVentesMois));
+  set('fin-ventes-mois-sub',ventesMois.length+' transaction(s)');
+  set('fin-loc-mois',fmt(totalLocsMois));
+  set('fin-loc-mois-sub',locsMois.length+' contrat(s)');
+  set('fin-ca-annee',fmt(caAnnee));
+  set('fin-ca-annee-sub',pct+'% objectif');
+  set('fin-ventes-annee',fmt(totalVentesAnnee));
+  set('fin-ventes-annee-sub',ventesAnnee.length+' vente(s)');
+  set('fin-loc-annee',fmt(totalLocsAnnee));
+  set('fin-loc-annee-sub','(loyers × 12) · '+locsAnnee.length);
+  set('fin-objectif-label',fmt(caAnnee)+' / '+fmt(objectif));
+  set('fin-pct-badge',pct+'%');
+  const bar=document.getElementById('fin-progress-bar');
+  if(bar)bar.style.width=pct+'%';
+  // Render tables
+  document.getElementById('fin-ventes-nb').textContent=ventes.length;
+  const vtBody=document.getElementById('fin-ventes-body');
+  if(vtBody){
+    vtBody.innerHTML='';
+    if(!ventes.length){
+      vtBody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:1.5rem">Aucune commission de vente</td></tr>';
+    } else {
+      ventes.forEach(function(c,i){
+        const montant=finMontant(c);
+        const badge=FIN_BADGE[c.statut]||'badge-blue';
+        const prix=parseFloat(c.prix)||0;
+        const tUsed=prix<=( params.tranchesVente[0]?.max||150000)?(params.tranchesVente[0]?.taux||5):getTrancheTaux(prix);
+        const tr=document.createElement('tr');
+        tr.innerHTML='<td><div style="font-weight:500">'+(c.bien||'—')+'</div><div style="font-size:11px;color:var(--text3)">'+(c.notes||'')+'</div></td>'
+          +'<td>'+(c.agent||'—')+'</td>'
+          +'<td>'+(c.prix?(parseFloat(c.prix).toLocaleString('fr-FR')+' €'):'—')+'</td>'
+          +'<td><span style="font-size:11px">'+tUsed+'%</span></td>'
+          +'<td style="font-weight:600;color:var(--green)">'+montant.toLocaleString('fr-FR')+' €</td>'
+          +'<td style="white-space:nowrap">'+(c.date||'—')+'</td>'
+          +'<td><span class="badge '+badge+'">'+c.statut+'</span></td>'
+          +'<td></td>';
+        const actWrap=document.createElement('div');actWrap.className='actions-cell';
+        const ed=document.createElement('button');ed.className='btn btn-sm';ed.innerHTML='<i class="ti ti-edit"></i>';
+        ed.onclick=(function(idx){return function(){openEditCommission('vente',idx);};})(i);
+        actWrap.appendChild(ed);
+        const rm=document.createElement('button');rm.className='btn btn-sm btn-danger';rm.innerHTML='<i class="ti ti-trash"></i>';
+        rm.onclick=(function(idx){return function(){deleteCommission('vente',idx);};})(i);
+        actWrap.appendChild(rm);
+        tr.querySelector('td:last-child').appendChild(actWrap);
+        vtBody.appendChild(tr);
+      });
+    }
+  }
+  document.getElementById('fin-loc-nb').textContent=locations.length;
+  const lcBody=document.getElementById('fin-loc-body');
+  if(lcBody){
+    lcBody.innerHTML='';
+    if(!locations.length){
+      lcBody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:1.5rem">Aucune commission de location</td></tr>';
+    } else {
+      locations.forEach(function(c,i){
+        const montant=finMontant(c);
+        const badge=FIN_BADGE[c.statut]||'badge-blue';
+        const surf=parseFloat(c.surface)||0;
+        const rUsed=getTrancheRate(surf);
+        const tr=document.createElement('tr');
+        tr.innerHTML='<td><div style="font-weight:500">'+(c.bien||'—')+'</div><div style="font-size:11px;color:var(--text3)">'+(c.notes||'')+'</div></td>'
+          +'<td>'+(c.agent||'—')+'</td>'
+          +'<td>'+(c.surface?c.surface+' m²':'—')+'</td>'
+          +'<td>'+(c.loyer?(parseFloat(c.loyer).toLocaleString('fr-FR')+' €/mois'):'—')+'</td>'
+          +'<td style="font-weight:600;color:var(--green)">'+montant.toLocaleString('fr-FR')+' €</td>'
+          +'<td style="white-space:nowrap">'+(c.date||'—')+'</td>'
+          +'<td><span class="badge '+badge+'">'+c.statut+'</span></td>'
+          +'<td></td>';
+        const actWrap=document.createElement('div');actWrap.className='actions-cell';
+        const ed=document.createElement('button');ed.className='btn btn-sm';ed.innerHTML='<i class="ti ti-edit"></i>';
+        ed.onclick=(function(idx){return function(){openEditCommission('location',idx);};})(i);
+        actWrap.appendChild(ed);
+        const rm=document.createElement('button');rm.className='btn btn-sm btn-danger';rm.innerHTML='<i class="ti ti-trash"></i>';
+        rm.onclick=(function(idx){return function(){deleteCommission('location',idx);};})(i);
+        actWrap.appendChild(rm);
+        tr.querySelector('td:last-child').appendChild(actWrap);
+        lcBody.appendChild(tr);
+      });
+    }
+  }
+}
+
+function commissionForm(type,c){
+  c=c||{};
+  const today=new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const bienOpts='<option value="">— Sélectionner —</option>'+biens.map(function(b){return '<option value="'+b.nom+'"'+(c.bien===b.nom?' selected':'')+'>'+b.nom+'</option>';}).join('');
+  const agentOpts=getUsers().filter(function(u){return ['agent','gerant'].includes(u.role||'agent');})
+    .map(function(u){return '<option value="'+(u.nom||u.email)+'"'+(c.agent===(u.nom||u.email)?' selected':'')+'>'+( u.nom||u.email)+'</option>';}).join('');
+  const statutOpts=FIN_STATUTS.map(function(s){return '<option'+(( c.statut||'En attente')===s?' selected':'')+'>'+s+'</option>';}).join('');
+  const info='<div style="background:var(--blue-bg);color:var(--blue-text);border-radius:var(--radius);padding:8px 12px;font-size:12px;margin-bottom:12px">'
+    +(type==='vente'
+      ?'Barème : '+params.tranchesVente.map(function(t){return (t.max?'≤'+t.max.toLocaleString('fr-FR')+'€':'∞')+' → '+t.taux+'%';}).join(' · ')
+      :'Barème : '+params.tranchesLoc.map(function(t){return (t.max?'≤'+t.max+'m²':'∞')+' → '+t.rate+'€/m²';}).join(' · '))
+    +'</div>';
+  if(type==='vente'){
+    return info
+      +'<div class="form-group"><label>Bien vendu</label><select id="fc-bien" onchange="onBienVenteChange()">'+bienOpts+'</select></div>'
+      +'<div class="form-row"><div><label>Agent</label><select id="fc-agent">'+agentOpts+'</select></div>'
+      +'<div><label>Date</label><input id="fc-date" value="'+(c.date||today)+'"></div></div>'
+      +'<div class="form-row"><div><label>Prix de vente (€) *</label><input id="fc-prix" type="number" value="'+(c.prix||'')+'" placeholder="350000" oninput="updateVentePreview()"></div>'
+      +'<div><label>Commission (€)</label><input id="fc-com-calc" type="number" value="'+(c.com_calc||'')+'" placeholder="Auto"></div></div>'
+      +'<div id="fc-preview" style="background:var(--green-bg);color:var(--green-text);border-radius:var(--radius);padding:10px;font-size:13px;margin-bottom:12px;display:none"></div>'
+      +'<div class="form-row"><div><label>Statut</label><select id="fc-statut">'+statutOpts+'</select></div>'
+      +'<div><label>Notes</label><input id="fc-notes" value="'+(c.notes||'')+'"></div></div>';
+  } else {
+    return info
+      +'<div class="form-group"><label>Bien loué</label><select id="fc-bien" onchange="onBienLocChange()">'+bienOpts+'</select></div>'
+      +'<div class="form-row"><div><label>Agent</label><select id="fc-agent">'+agentOpts+'</select></div>'
+      +'<div><label>Date</label><input id="fc-date" value="'+(c.date||today)+'"></div></div>'
+      +'<div class="form-row"><div><label>Surface (m²) *</label><input id="fc-surface" type="number" value="'+(c.surface||'')+'" placeholder="65" oninput="updateLocPreview()"></div>'
+      +'<div><label>Loyer mensuel (€)</label><input id="fc-loyer" type="number" value="'+(c.loyer||'')+'" placeholder="900"></div></div>'
+      +'<div class="form-row"><div><label>Commission (€)</label><input id="fc-com-calc" type="number" value="'+(c.com_calc||'')+'" placeholder="Auto"></div>'
+      +'<div><label>Statut</label><select id="fc-statut">'+statutOpts+'</select></div></div>'
+      +'<div id="fc-preview" style="background:var(--green-bg);color:var(--green-text);border-radius:var(--radius);padding:10px;font-size:13px;margin-bottom:12px;display:none"></div>'
+      +'<div class="form-group"><label>Notes</label><input id="fc-notes" value="'+(c.notes||'')+'"></div>';
+  }
+}
+function updateVentePreview(){
+  const prix=parseFloat(document.getElementById('fc-prix')?.value||0);
+  const calcEl=document.getElementById('fc-com-calc');
+  const preview=document.getElementById('fc-preview');
+  if(!prix){if(preview)preview.style.display='none';return;}
+  const com=calcVenteCommission(prix);
+  if(calcEl&&!calcEl.value)calcEl.value=com;
+  const taux=getTrancheTaux(prix);
+  if(preview){preview.style.display='block';preview.innerHTML='<i class="ti ti-calculator" style="vertical-align:-2px;margin-right:6px"></i><b>Commission : '+com.toLocaleString('fr-FR')+' €</b> <span style="opacity:.7">(taux : '+taux+'%)</span>';}
+}
+function updateLocPreview(){
+  const surface=parseFloat(document.getElementById('fc-surface')?.value||0);
+  const calcEl=document.getElementById('fc-com-calc');
+  const preview=document.getElementById('fc-preview');
+  if(!surface){if(preview)preview.style.display='none';return;}
+  const com=calcLocCommission(surface);
+  if(calcEl&&!calcEl.value)calcEl.value=com;
+  const rate=getTrancheRate(surface);
+  if(preview){preview.style.display='block';preview.innerHTML='<i class="ti ti-calculator" style="vertical-align:-2px;margin-right:6px"></i><b>Commission : '+com.toLocaleString('fr-FR')+' €</b> <span style="opacity:.7">('+rate+'€/m² × '+surface+'m²)</span>';}
+}
+function onBienVenteChange(){
+  const sel=document.getElementById('fc-bien');if(!sel)return;
+  const opt=sel.options[sel.selectedIndex];
+  const b=biens.find(function(b){return b.nom===opt.value;});
+  if(b){const prixEl=document.getElementById('fc-prix');if(prixEl&&!prixEl.value){const p=parseFloat((b.prix||'').replace(/[^0-9.]/g,''));if(p)prixEl.value=p;}updateVentePreview();}
+}
+function onBienLocChange(){
+  const sel=document.getElementById('fc-bien');if(!sel)return;
+  const b=biens.find(function(b){return b.nom===sel.value;});
+  if(b){
+    const surfEl=document.getElementById('fc-surface');
+    if(surfEl&&!surfEl.value&&b.surface)surfEl.value=parseFloat(b.surface)||'';
+    const loyerEl=document.getElementById('fc-loyer');
+    if(loyerEl&&!loyerEl.value){const l=parseFloat((b.prix||'').replace(/[^0-9.]/g,''));if(l)loyerEl.value=l;}
+    updateLocPreview();
+  }
+}
+function openAddCommission(type){
+  openModal(type==='vente'?'Nouvelle commission vente':'Nouvelle commission location',commissionForm(type),'add-commission-'+type);
+  setTimeout(function(){if(type==='vente')updateVentePreview();else updateLocPreview();},80);
+}
+function openEditCommission(type,idx){
+  const c=type==='vente'?finance.ventes[idx]:finance.locations[idx];
+  openModal(type==='vente'?'Modifier commission vente':'Modifier commission location',commissionForm(type,c),'edit-commission-'+type,idx);
+  setTimeout(function(){if(type==='vente')updateVentePreview();else updateLocPreview();},80);
+}
+async function deleteCommission(type,idx){
+  const arr=type==='vente'?finance.ventes:finance.locations;
+  if(!confirm('Supprimer cette commission ?'))return;
+  const item=arr[idx];
+  if(item&&item._id)await dbDelete('finance',item._id);
+  arr.splice(idx,1);
+  renderFinance();notif('Commission supprimée.','amber');
+}
+async function saveCommission(){
+  const type=mMode.replace('add-commission-','').replace('edit-commission-','');
+  const g=function(id){return(document.getElementById(id)||{}).value||'';};
+  const c={type:type,bien:g('fc-bien'),agent:g('fc-agent'),date:g('fc-date'),statut:g('fc-statut')||'En attente',notes:g('fc-notes'),com_calc:g('fc-com-calc')};
+  if(type==='vente'){
+    c.prix=g('fc-prix');
+    if(!c.prix||c.prix==='0'){alert('Prix de vente requis');return;}
+    if(mMode.startsWith('add')){finance.ventes.push(c);}else{finance.ventes[mIdx]=c;}
+  } else {
+    c.surface=g('fc-surface');c.loyer=g('fc-loyer');
+    if(!c.surface||c.surface==='0'){alert('Surface requise');return;}
+    if(mMode.startsWith('add')){finance.locations.push(c);}else{finance.locations[mIdx]=c;}
+  }
+  await saveFinanceSupabase(c);renderFinance();closeModal();
+  notif(mMode.startsWith('add')?'Commission ajoutée.':'Commission mise à jour.');
 }
 
 // === PWA ===
