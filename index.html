@@ -2249,16 +2249,31 @@ async function doLogout(){
   await supa.auth.signOut();
   supaSession=null;
   currentUser={email:'',role:'gerant',nom:'',id:''};
+  currentAgence={id:'',nom:''};
+  userAgences=[];
+  APIKEY='';
   contacts=[];biens=[];docs=[];calEvents={};finance={ventes:[],locations:[]};
-  document.getElementById('main-app').style.display='none';
-  document.getElementById('agency-screen').style.display='none';
-  document.getElementById('setup-screen').style.display='none';
-  document.getElementById('compte-screen').style.display='none';
-  document.getElementById('login-email').value='';
-  document.getElementById('login-pwd').value='';
+  // Hide all screens
+  ['main-app','agency-screen','setup-screen','compte-screen'].forEach(function(id){
+    const el=document.getElementById(id);
+    if(el)el.style.display='none';
+  });
+  // Reset auth form
+  const emailEl=document.getElementById('login-email');
+  const pwdEl=document.getElementById('login-pwd');
+  if(emailEl)emailEl.value='';
+  if(pwdEl)pwdEl.value='';
   const btn=document.getElementById('btn-auth');
-  if(btn){btn.style.display='flex';}
-  document.getElementById('forgot-sent').style.display='none';
+  if(btn){btn.style.display='flex';btn.innerHTML='<i class="ti ti-login"></i> Se connecter';}
+  const forgotSent=document.getElementById('forgot-sent');
+  if(forgotSent)forgotSent.style.display='none';
+  // Restore landing navbar to login/signup buttons
+  const compteBtn=document.getElementById('landing-btn-compte');
+  if(compteBtn)compteBtn.style.display='none';
+  const l1=document.getElementById('landing-btn-login');
+  const l2=document.getElementById('landing-btn-signup');
+  if(l1)l1.style.display='block';
+  if(l2)l2.style.display='block';
   switchAuthTab('login');
   showLanding();
 }
