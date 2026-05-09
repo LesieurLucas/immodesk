@@ -2423,18 +2423,24 @@ async function loadPendingInvitations(){
     .select('*,agences(nom)')
     .eq('email',currentUser.email)
     .eq('used',false);
-  const pending=(data||[]).filter(function(inv){return new Date(inv.expires_at)>new Date();});
-  const badge=document.getElementById('inv-badge');
-  if(badge){
-    if(pending.length>0){
-      badge.style.display='flex';
-      badge.textContent=pending.length;
-    } else {
-      badge.style.display='none';
-      badge.textContent='';
-    }
-  }
+  const now=new Date();
+  const pending=(data||[]).filter(function(inv){
+    return !inv.used && new Date(inv.expires_at)>now;
+  });
+  updateInvBadge(pending.length);
   return pending;
+}
+
+function updateInvBadge(count){
+  const badge=document.getElementById('inv-badge');
+  if(!badge)return;
+  if(count>0){
+    badge.style.display='flex';
+    badge.textContent=count;
+  } else {
+    badge.style.display='none';
+    badge.textContent='';
+  }
 }
 
 async function showInvitations(){
@@ -2472,9 +2478,9 @@ async function showInvitations(){
         if(card)card.remove();
         notif('Vous avez rejoint '+(inv.agences?.nom||"l'agence")+'!');
         // Force badge hide immediately
-        const badge=document.getElementById('inv-badge');
-        if(badge){badge.style.display='none';badge.textContent='';}
-        await loadPendingInvitations();
+        updateInvBadge(0);
+        // Reload to get accurate count
+        setTimeout(async function(){await loadPendingInvitations();},500);
         if(!document.querySelector('[id^="inv-card-"]'))closeModal();
       };
       const decline=document.createElement('button');
@@ -2485,9 +2491,8 @@ async function showInvitations(){
         const card=document.getElementById('inv-card-'+i);
         if(card)card.remove();
         notif('Invitation refusée.','amber');
-        const badge2=document.getElementById('inv-badge');
-        if(badge2){badge2.style.display='none';badge2.textContent='';}
-        await loadPendingInvitations();
+        updateInvBadge(0);
+        setTimeout(async function(){await loadPendingInvitations();},500);
         if(!document.querySelector('[id^="inv-card-"]'))closeModal();
       };
       wrap.appendChild(accept);
