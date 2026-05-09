@@ -309,14 +309,19 @@
 </div>
 
 <!-- AGENCY SELECTOR -->
-<div id="agency-screen" style="display:none;position:fixed;inset:0;z-index:998;align-items:center;justify-content:center;padding:1rem;background:linear-gradient(135deg,#0f3460 0%,#185FA5 60%,#1a8fe3 100%)">
-  <div style="background:var(--surface);border-radius:20px;padding:2rem;max-width:500px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.25)">
-    <div style="text-align:center;margin-bottom:1.5rem">
-      <div style="width:50px;height:50px;background:#185FA5;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto .75rem">
-        <svg viewBox="0 0 32 32" width="28" height="28"><path d="M16 4L3 14v1h3v13h7v-7h6v7h7V15h3v-1L16 4z" fill="white"/></svg>
+<div id="agency-screen" style="display:none;position:fixed;inset:0;z-index:998;align-items:center;justify-content:center;padding:1rem;background:#FAFAF8">
+  <div style="background:#fff;border-radius:16px;padding:2rem;max-width:460px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,0.08);border:0.5px solid rgba(0,0,0,0.08)">
+    <button type="button" onclick="doLogout()" style="background:none;border:none;cursor:pointer;font-size:12px;color:#888780;display:flex;align-items:center;gap:4px;margin-bottom:1.5rem;padding:0">
+      <i class="ti ti-arrow-left" style="font-size:14px"></i> Retour
+    </button>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:1.5rem">
+      <div style="width:40px;height:40px;background:#185FA5;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg viewBox="0 0 32 32" width="24" height="24"><path d="M16 4L3 14v1h3v13h7v-7h6v7h7V15h3v-1L16 4z" fill="white"/></svg>
       </div>
-      <div style="font-size:18px;font-weight:600;color:var(--text)">Choisir une agence</div>
-      <div style="font-size:13px;color:var(--text3);margin-top:3px">Sélectionnez l'agence sur laquelle travailler</div>
+      <div>
+        <div style="font-size:16px;font-weight:700;color:#1a1a18">Choisir une agence</div>
+        <div style="font-size:12px;color:#888780;margin-top:2px">Sélectionnez l'agence sur laquelle travailler</div>
+      </div>
     </div>
     <div id="agency-list" style="margin-bottom:1.25rem"></div>
     <button class="btn btn-primary" style="width:100%;justify-content:center;padding:10px" id="btn-new-agency" type="button">
