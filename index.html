@@ -2388,7 +2388,11 @@ async function sendInvitation(){
   const target=profiles[0];
 
   const {data:existing}=await supa.from('membres_agence').select('id').eq('agence_id',currentAgence.id).eq('user_id',target.id);
-  if(existing&&existing.length>0){showInvError(email+' est déjà membre de cette agence.');return;}
+  if(existing&&existing.length>0){
+    const res=document.getElementById('inv-link-result');
+    if(res){res.style.display='block';res.style.background='';res.style.color='';res.innerHTML='<i class="ti ti-info-circle" style="color:var(--amber);margin-right:6px"></i><strong>'+(target.nom||email)+'</strong> est déjà membre de cette agence.';}
+    return;
+  }
 
   // Check no pending invitation already
   const {data:pendingInv}=await supa.from('invitations').select('id').eq('agence_id',currentAgence.id).eq('email',email).eq('used',false);
@@ -2467,6 +2471,9 @@ async function showInvitations(){
         const card=document.getElementById('inv-card-'+i);
         if(card)card.remove();
         notif('Vous avez rejoint '+(inv.agences?.nom||"l'agence")+'!');
+        // Force badge hide immediately
+        const badge=document.getElementById('inv-badge');
+        if(badge){badge.style.display='none';badge.textContent='';}
         await loadPendingInvitations();
         if(!document.querySelector('[id^="inv-card-"]'))closeModal();
       };
@@ -2478,6 +2485,8 @@ async function showInvitations(){
         const card=document.getElementById('inv-card-'+i);
         if(card)card.remove();
         notif('Invitation refusée.','amber');
+        const badge2=document.getElementById('inv-badge');
+        if(badge2){badge2.style.display='none';badge2.textContent='';}
         await loadPendingInvitations();
         if(!document.querySelector('[id^="inv-card-"]'))closeModal();
       };
