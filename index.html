@@ -456,9 +456,9 @@
         <button class="btn btn-hide" onclick="openAddContact()"><i class="ti ti-user-plus"></i> Contact</button>
         <button class="btn btn-primary" onclick="openAddBien()"><i class="ti ti-home-plus"></i> Bien</button>
         <button class="btn" id="btn-api-key" onclick="showKeySettings()" title="Clé IA (admin)" style="padding:7px 10px;display:none"><i class="ti ti-key"></i></button>
-        <button class="btn" id="btn-invitations" type="button" onclick="showInvitations()" title="Invitations" style="padding:7px 10px;display:none;position:relative">
+        <button class="btn" id="btn-invitations" type="button" onclick="showInvitations()" title="Invitations" style="padding:7px 10px;position:relative">
           <i class="ti ti-bell"></i>
-          <span id="inv-badge" style="position:absolute;top:4px;right:4px;background:#E24B4A;color:#fff;border-radius:50%;width:14px;height:14px;font-size:9px;display:flex;align-items:center;justify-content:center;font-weight:600"></span>
+          <span id="inv-badge" style="position:absolute;top:4px;right:4px;background:#E24B4A;color:#fff;border-radius:50%;width:14px;height:14px;font-size:9px;display:none;align-items:center;justify-content:center;font-weight:600"></span>
         </button>
         <div id="admin-badge" style="display:none;padding:4px 10px;background:#FCEBEB;color:#791F1F;border-radius:var(--radius);font-size:11px;font-weight:600;cursor:pointer" onclick="showPage('admin',this)" title="Panneau admin"><i class="ti ti-shield" style="font-size:13px;vertical-align:-2px"></i> Admin</div>
       </div>
@@ -2414,16 +2414,22 @@ function showInvError(msg){
 }
 
 async function loadPendingInvitations(){
-  if(!currentUser.email)return;
+  if(!currentUser.email)return[];
   const {data}=await supa.from('invitations')
     .select('*,agences(nom)')
     .eq('email',currentUser.email)
     .eq('used',false);
   const pending=(data||[]).filter(function(inv){return new Date(inv.expires_at)>new Date();});
-  const btn=document.getElementById('btn-invitations');
   const badge=document.getElementById('inv-badge');
-  if(btn)btn.style.display=pending.length>0?'flex':'none';
-  if(badge)badge.textContent=pending.length>0?pending.length:'';
+  if(badge){
+    if(pending.length>0){
+      badge.style.display='flex';
+      badge.textContent=pending.length;
+    } else {
+      badge.style.display='none';
+      badge.textContent='';
+    }
+  }
   return pending;
 }
 
