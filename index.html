@@ -2794,9 +2794,9 @@ async function loadAllData(){
   const {data:pRow}=await supa.from('parametres').select('*').eq('agence_id',aid).single();
   if(pRow){
     params={
-      tranchesVente:pRow.tranches_vente||[{max:150000,taux:5},{max:300000,taux:4},{max:null,taux:3}],
-      tranchesLoc:pRow.tranches_loc||[{max:30,rate:12},{max:80,rate:10},{max:null,rate:8}],
-      objectif:pRow.objectif||50000
+      tranchesVente:pRow.tranches_vente&&pRow.tranches_vente.length?pRow.tranches_vente:[{max:150000,taux:5},{max:300000,taux:4},{max:null,taux:3}],
+      tranchesLoc:pRow.tranches_loc&&pRow.tranches_loc.length?pRow.tranches_loc:[{max:30,rate:12},{max:80,rate:10},{max:null,rate:8}],
+      objectif:pRow.objectif!=null?parseFloat(pRow.objectif):50000
     };
   }
 }
@@ -2845,7 +2845,23 @@ async function saveEventSupabase(key,ev){
   }
 }
 async function saveParamsSupabase(){
-  await dbUpsert('parametres',{user_id:currentUser.id,agence_id:currentAgence.id,tranches_vente:params.tranchesVente,tranches_loc:params.tranchesLoc,objectif:params.objectif},'agence_id');
+  // First check if row exists
+  const {data:existing}=await supa.from('parametres').select('id').eq('agence_id',currentAgence.id).single();
+  if(existing){
+    await supa.from('parametres').update({
+      tranches_vente:params.tranchesVente,
+      tranches_loc:params.tranchesLoc,
+      objectif:params.objectif
+    }).eq('agence_id',currentAgence.id);
+  } else {
+    await supa.from('parametres').insert({
+      user_id:currentUser.id,
+      agence_id:currentAgence.id,
+      tranches_vente:params.tranchesVente,
+      tranches_loc:params.tranchesLoc,
+      objectif:params.objectif
+    });
+  }
 }
 
 // Override saveFinance
