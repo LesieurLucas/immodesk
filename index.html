@@ -1908,40 +1908,7 @@ function showAuthScreen(mode){
 }
 
 // Attach login page events after DOM ready
-document.addEventListener('DOMContentLoaded', function(){
-  // Auth form buttons
-  const tabLogin=document.getElementById('tab-login');
-  const tabSignup=document.getElementById('tab-signup');
-  const btnForgot=document.getElementById('btn-forgot');
-  const loginEye=document.getElementById('login-eye');
-  const btnAuth=document.getElementById('btn-auth');
-  const btnBack=document.getElementById('btn-back-login');
-  const pwdInput=document.getElementById('login-pwd');
-  const emailInput=document.getElementById('login-email');
-  if(tabLogin) tabLogin.addEventListener('click', function(){switchAuthTab('login');});
-  if(tabSignup) tabSignup.addEventListener('click', function(){switchAuthTab('signup');});
-  if(btnForgot) btnForgot.addEventListener('click', doForgot);
-  if(loginEye) loginEye.addEventListener('click', toggleLoginPwd);
-  if(btnAuth) btnAuth.addEventListener('click', doLogin);
-  if(btnBack) btnBack.addEventListener('click', function(){switchAuthTab('login');});
-  if(pwdInput) pwdInput.addEventListener('keydown', function(e){if(e.key==='Enter')doLogin();});
-  if(emailInput) emailInput.addEventListener('keydown', function(e){if(e.key==='Enter')document.getElementById('login-pwd')?.focus();});
-
-  // Landing page buttons
-  const ids=[
-    ['landing-btn-login',   function(){showAuthScreen('login');}],
-    ['landing-btn-signup',  function(){showAuthScreen('signup');}],
-    ['landing-btn-hero1',   function(){showAuthScreen('signup');}],
-    ['landing-btn-hero2',   function(){showAuthScreen('login');}],
-    ['landing-btn-free',    function(){showAuthScreen('signup');}],
-    ['landing-btn-pro',     function(){showAuthScreen('signup');}],
-    ['btn-back-to-landing', function(){showLanding();}],
-  ];
-  ids.forEach(function(pair){
-    const el=document.getElementById(pair[0]);
-    if(el) el.addEventListener('click', pair[1]);
-  });
-});
+// event listeners attached at end of script
 
 function switchAuthTab(mode){
   authMode=mode;
@@ -3135,6 +3102,40 @@ async function saveFinanceSupabase(item){
     showLanding();
   }
 })();
+document.addEventListener('DOMContentLoaded', function(){
+  // Auth form buttons
+  const tabLogin=document.getElementById('tab-login');
+  const tabSignup=document.getElementById('tab-signup');
+  const btnForgot=document.getElementById('btn-forgot');
+  const loginEye=document.getElementById('login-eye');
+  const btnAuth=document.getElementById('btn-auth');
+  const btnBack=document.getElementById('btn-back-login');
+  const pwdInput=document.getElementById('login-pwd');
+  const emailInput=document.getElementById('login-email');
+  if(tabLogin) tabLogin.addEventListener('click', function(){switchAuthTab('login');});
+  if(tabSignup) tabSignup.addEventListener('click', function(){switchAuthTab('signup');});
+  if(btnForgot) btnForgot.addEventListener('click', doForgot);
+  if(loginEye) loginEye.addEventListener('click', toggleLoginPwd);
+  if(btnAuth) btnAuth.addEventListener('click', doLogin);
+  if(btnBack) btnBack.addEventListener('click', function(){switchAuthTab('login');});
+  if(pwdInput) pwdInput.addEventListener('keydown', function(e){if(e.key==='Enter')doLogin();});
+  if(emailInput) emailInput.addEventListener('keydown', function(e){if(e.key==='Enter')document.getElementById('login-pwd')?.focus();});
+
+  // Landing page buttons
+  const ids=[
+    ['landing-btn-login',   function(){showAuthScreen('login');}],
+    ['landing-btn-signup',  function(){showAuthScreen('signup');}],
+    ['landing-btn-hero1',   function(){showAuthScreen('signup');}],
+    ['landing-btn-hero2',   function(){showAuthScreen('login');}],
+    ['landing-btn-free',    function(){showAuthScreen('signup');}],
+    ['landing-btn-pro',     function(){showAuthScreen('signup');}],
+    ['btn-back-to-landing', function(){showLanding();}],
+  ];
+  ids.forEach(function(pair){
+    const el=document.getElementById(pair[0]);
+    if(el) el.addEventListener('click', pair[1]);
+  });
+});
 </script>
 </body>
 </html>
