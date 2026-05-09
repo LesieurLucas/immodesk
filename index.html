@@ -1035,10 +1035,23 @@ function openEditContact(idx){openModal('Modifier le contact',cForm(contacts[idx
 async function saveContact(){
   const p=document.getElementById('m-prenom').value.trim(),n=document.getElementById('m-nom').value.trim();
   if(!p||!n){alert('Prénom et nom requis');return;}
-  const d={prenom:p,nom:n,tel:document.getElementById('m-tel').value||'—',email:document.getElementById('m-email').value||'',type:document.getElementById('m-type').value,budget:document.getElementById('m-budget').value||'—',secteur:document.getElementById('m-secteur').value||'—',statut:document.getElementById('m-statut').value};
-  if(mMode==='add-contact'){contacts.push(d);await saveContactSupabase(d);notif('Contact ajouté.');}
-  else{contacts[mIdx]=d;await saveContactSupabase(d);notif('Contact mis à jour.');}
-  updateStats();renderContacts();renderDashboard();closeModal();
+  if(mMode==='add-contact'){
+    const d={_id:null,prenom:p,nom:n,tel:document.getElementById('m-tel').value||'—',email:document.getElementById('m-email').value||'',type:document.getElementById('m-type').value,budget:document.getElementById('m-budget').value||'—',secteur:document.getElementById('m-secteur').value||'—',statut:document.getElementById('m-statut').value};
+    contacts.push(d);
+    updateStats();renderContacts();renderDashboard();closeModal();
+    await saveContactSupabase(d);notif('Contact ajouté.');
+  } else {
+    const c=contacts[mIdx];
+    c.prenom=p;c.nom=n;
+    c.tel=document.getElementById('m-tel').value||'—';
+    c.email=document.getElementById('m-email').value||'';
+    c.type=document.getElementById('m-type').value;
+    c.budget=document.getElementById('m-budget').value||'—';
+    c.secteur=document.getElementById('m-secteur').value||'—';
+    c.statut=document.getElementById('m-statut').value;
+    updateStats();renderContacts();renderDashboard();closeModal();
+    await saveContactSupabase(c);notif('Contact mis à jour.');
+  }
 }
 async function deleteContact(idx){
   const c=contacts[idx];
