@@ -2417,6 +2417,8 @@ function showInvError(msg){
   if(res){res.style.display='block';res.style.background='var(--red-bg)';res.style.color='var(--red-text)';res.innerHTML='<i class="ti ti-alert-circle" style="margin-right:6px"></i>'+msg;}
 }
 
+const _handledInvitations=new Set(); // track dismissed invitations client-side
+
 async function loadPendingInvitations(){
   if(!currentUser.email)return[];
   const {data}=await supa.from('invitations')
@@ -2425,7 +2427,9 @@ async function loadPendingInvitations(){
     .eq('used',false);
   const now=new Date();
   const pending=(data||[]).filter(function(inv){
-    return !inv.used && new Date(inv.expires_at)>now;
+    return !inv.used
+      && new Date(inv.expires_at)>now
+      && !_handledInvitations.has(inv.id); // exclude locally dismissed
   });
   updateInvBadge(pending.length);
   return pending;
@@ -2471,28 +2475,26 @@ async function showInvitations(){
       accept.innerHTML='<i class="ti ti-check"></i> Accepter';
       accept.onclick=async function(){
         accept.disabled=true;accept.textContent='...';
+        _handledInvitations.add(inv.id);
         await supa.from('membres_agence').upsert({agence_id:inv.agence_id,user_id:currentUser.id,role:inv.role},{onConflict:'agence_id,user_id'});
         await supa.from('invitations').update({used:true}).eq('id',inv.id);
         await loadUserAgences();
         const card=document.getElementById('inv-card-'+i);
         if(card)card.remove();
         notif('Vous avez rejoint '+(inv.agences?.nom||"l'agence")+'!');
-        // Force badge hide immediately
-        updateInvBadge(0);
-        // Reload to get accurate count
-        setTimeout(async function(){await loadPendingInvitations();},500);
+        await loadPendingInvitations();
         if(!document.querySelector('[id^="inv-card-"]'))closeModal();
       };
       const decline=document.createElement('button');
       decline.className='btn btn-sm';
       decline.innerHTML='<i class="ti ti-x"></i> Refuser';
       decline.onclick=async function(){
+        _handledInvitations.add(inv.id); // mark locally dismissed immediately
         await supa.from('invitations').update({used:true}).eq('id',inv.id);
         const card=document.getElementById('inv-card-'+i);
         if(card)card.remove();
         notif('Invitation refusée.','amber');
-        updateInvBadge(0);
-        setTimeout(async function(){await loadPendingInvitations();},500);
+        await loadPendingInvitations();
         if(!document.querySelector('[id^="inv-card-"]'))closeModal();
       };
       wrap.appendChild(accept);
