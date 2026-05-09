@@ -1871,29 +1871,39 @@ function copyText(id){navigator.clipboard?.writeText(document.getElementById(id)
 let authMode='login';
 
 function showLandingFromApp(){
-  // Show landing over the app without logging out
   document.getElementById('landing-screen').style.display='flex';
-  // Override navbar to show "Retour à l'app" button
   const nav=document.querySelector('#landing-screen nav');
-  if(nav){
-    const btnZone=nav.querySelector('div:last-child');
-    if(btnZone){
-      btnZone.innerHTML='<button type="button" onclick="hideLandingFromApp()" style="background:#185FA5;color:#fff;border:none;cursor:pointer;font-size:13px;padding:9px 18px;border-radius:8px;font-weight:500"><i class="ti ti-arrow-left" style="font-size:14px;vertical-align:-2px;margin-right:4px"></i>Retour à l'app</button>';
-    }
-  }
+  if(!nav)return;
+  const btnZone=nav.querySelector('div:last-child');
+  if(!btnZone)return;
+  btnZone.innerHTML='';
+  const btn=document.createElement('button');
+  btn.type='button';
+  btn.style.cssText='background:#185FA5;color:#fff;border:none;cursor:pointer;font-size:13px;padding:9px 18px;border-radius:8px;font-weight:500;display:flex;align-items:center;gap:6px';
+  btn.innerHTML='<i class="ti ti-arrow-left" style="font-size:14px"></i>Retour';
+  btn.addEventListener('click', hideLandingFromApp);
+  btnZone.appendChild(btn);
 }
 
 function hideLandingFromApp(){
   document.getElementById('landing-screen').style.display='none';
-  // Restore normal navbar buttons
   const nav=document.querySelector('#landing-screen nav');
-  if(nav){
-    const btnZone=nav.querySelector('div:last-child');
-    if(btnZone){
-      btnZone.innerHTML='<button type="button" id="landing-btn-login" type="button" style="background:none;border:none;cursor:pointer;font-size:13px;color:#5f5e5a;padding:8px 16px;border-radius:8px;font-weight:500">Connexion</button>'
-        +'<button type="button" id="landing-btn-signup" type="button" style="background:#185FA5;color:#fff;border:none;cursor:pointer;font-size:13px;padding:9px 18px;border-radius:8px;font-weight:500">Commencer gratuitement</button>';
-    }
-  }
+  if(!nav)return;
+  const btnZone=nav.querySelector('div:last-child');
+  if(!btnZone)return;
+  btnZone.innerHTML='';
+  const b1=document.createElement('button');
+  b1.type='button';
+  b1.style.cssText='background:none;border:none;cursor:pointer;font-size:13px;color:#5f5e5a;padding:8px 16px;border-radius:8px;font-weight:500';
+  b1.textContent='Connexion';
+  b1.addEventListener('click',function(){showAuthScreen('login');});
+  const b2=document.createElement('button');
+  b2.type='button';
+  b2.style.cssText='background:#185FA5;color:#fff;border:none;cursor:pointer;font-size:13px;padding:9px 18px;border-radius:8px;font-weight:500';
+  b2.textContent='Commencer gratuitement';
+  b2.addEventListener('click',function(){showAuthScreen('signup');});
+  btnZone.appendChild(b1);
+  btnZone.appendChild(b2);
 }
 
 function showLanding(){
