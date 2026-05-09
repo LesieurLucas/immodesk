@@ -937,21 +937,26 @@ async function saveBien(){
   const isAdd=mMode==='add-bien';
   const oldBien=isAdd?null:biens[mIdx];
   const oldNom=oldBien?oldBien.nom:null;
-  // Keep _id from existing bien for update
-  const d={
-    _id: oldBien?oldBien._id:null,
-    nom:nom,
-    type:document.getElementById('m-btype').value,
-    surface:document.getElementById('m-bsurf').value||'—',
-    prix:document.getElementById('m-bprix').value||'—',
-    ville:document.getElementById('m-bville').value||'—',
-    statut:document.getElementById('m-bstatut').value
-  };
-  if(isAdd){biens.push(d);}else{biens[mIdx]=d;}
-  syncBienToFinance(d,oldNom);
-  closeModal();
-  updateStats();renderBiens();renderDashboard();
-  saveBienSupabase(d).then(function(){notif(isAdd?'Bien ajouté.':'Bien mis à jour.');}).catch(function(e){notif('Erreur : '+e.message,'amber');});
+  if(isAdd){
+    // New bien — push to array then save (saveBienSupabase will set _id)
+    const d={_id:null,nom:nom,type:document.getElementById('m-btype').value,surface:document.getElementById('m-bsurf').value||'—',prix:document.getElementById('m-bprix').value||'—',ville:document.getElementById('m-bville').value||'—',statut:document.getElementById('m-bstatut').value};
+    biens.push(d);
+    closeModal();updateStats();renderBiens();renderDashboard();
+    saveBienSupabase(d).then(function(){notif('Bien ajouté.');}).catch(function(e){notif('Erreur : '+e.message,'amber');});
+  } else {
+    // Edit — update existing object IN PLACE to preserve reference
+    const b=biens[mIdx];
+    const prevNom=b.nom;
+    b.nom=nom;
+    b.type=document.getElementById('m-btype').value;
+    b.surface=document.getElementById('m-bsurf').value||'—';
+    b.prix=document.getElementById('m-bprix').value||'—';
+    b.ville=document.getElementById('m-bville').value||'—';
+    b.statut=document.getElementById('m-bstatut').value;
+    syncBienToFinance(b,prevNom);
+    closeModal();updateStats();renderBiens();renderDashboard();
+    saveBienSupabase(b).then(function(){notif('Bien mis à jour.');}).catch(function(e){notif('Erreur : '+e.message,'amber');});
+  }
 }
 async function deleteBien(idx){
   const b=biens[idx];
@@ -1869,9 +1874,14 @@ async function selectAgence(ag){
   currentAgence={id:ag.id,nom:ag.nom};
   currentUser.role=ag.role||'gerant';
   document.getElementById('agency-screen').style.display='none';
-  await loadAllData();
   document.getElementById('main-app').style.display='flex';
+  // Reset all local data
+  contacts=[];biens=[];docs=[];calEvents={};finance={ventes:[],locations:[]};
+  folders=[];
+  await loadAllData();
   initApp();
+  // Force render current page
+  showPage('dashboard', document.querySelector('.nav-item.active'));
 }
 
 async function acceptInvitation(token){
