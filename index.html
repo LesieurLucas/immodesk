@@ -1958,22 +1958,28 @@ function copyText(id){navigator.clipboard?.writeText(document.getElementById(id)
 let authMode='login';
 
 // === COMPTE ===
-function showCompte(){
-  // Update fields from current user
-  document.getElementById('compte-nom').value=currentUser.nom||'';
-  document.getElementById('compte-email').value=currentUser.email||'';
-  try{
-    const profile=JSON.parse(localStorage.getItem('im_profile')||'{}');
-    document.getElementById('compte-tel').value=profile.tel||'';
-  }catch(e){}
-  const initials=(currentUser.nom||currentUser.email||'?').split(' ').map(function(w){return w[0]||'';}).join('').slice(0,2).toUpperCase();
-  document.getElementById('compte-avatar').textContent=initials;
-  document.getElementById('compte-nom-display').textContent=currentUser.nom||currentUser.email||'—';
-  document.getElementById('compte-email-display').textContent=currentUser.email||'—';
-  // Hide other screens
+async function showCompte(){
   document.getElementById('landing-screen').style.display='none';
   document.getElementById('main-app').style.display='none';
   document.getElementById('compte-screen').style.display='block';
+  // Load fresh profile from Supabase
+  if(supa&&currentUser.id){
+    const {data:profile}=await supa.from('profiles').select('*').eq('id',currentUser.id).single();
+    if(profile){
+      currentUser.nom=profile.nom||currentUser.nom;
+      document.getElementById('compte-nom').value=profile.nom||'';
+      document.getElementById('compte-email').value=currentUser.email||'';
+      document.getElementById('compte-tel').value=profile.tel||'';
+    }
+  } else {
+    document.getElementById('compte-nom').value=currentUser.nom||'';
+    document.getElementById('compte-email').value=currentUser.email||'';
+  }
+  const nom=currentUser.nom||currentUser.email||'?';
+  const initials=nom.split(' ').map(function(w){return w[0]||'';}).join('').slice(0,2).toUpperCase();
+  document.getElementById('compte-avatar').textContent=initials;
+  document.getElementById('compte-nom-display').textContent=nom;
+  document.getElementById('compte-email-display').textContent=currentUser.email||'—';
 }
 
 function hideCompte(){
@@ -2247,6 +2253,7 @@ async function doLogout(){
   document.getElementById('main-app').style.display='none';
   document.getElementById('agency-screen').style.display='none';
   document.getElementById('setup-screen').style.display='none';
+  document.getElementById('compte-screen').style.display='none';
   document.getElementById('login-email').value='';
   document.getElementById('login-pwd').value='';
   const btn=document.getElementById('btn-auth');
@@ -2436,18 +2443,25 @@ async function showInvitations(){
         await supa.from('membres_agence').upsert({agence_id:inv.agence_id,user_id:currentUser.id,role:inv.role},{onConflict:'agence_id,user_id'});
         await supa.from('invitations').update({used:true}).eq('id',inv.id);
         await loadUserAgences();
-        closeModal();
-        notif('Vous avez rejoint '+( inv.agences?.nom||'l\'agence')+'!');
+        const card=accept.closest('div[style*="background"]');
+        if(card)card.remove();
+        notif('Vous avez rejoint '+(inv.agences?.nom||"l'agence")+'!');
         await loadPendingInvitations();
+        const remaining=document.querySelectorAll('#modal-body div[style*="surface2"]');
+        if(!remaining||remaining.length===0)closeModal();
       };
       const decline=document.createElement('button');
       decline.className='btn btn-sm';
       decline.innerHTML='<i class="ti ti-x"></i> Refuser';
       decline.onclick=async function(){
         await supa.from('invitations').update({used:true}).eq('id',inv.id);
-        wrap.closest('div[style]').remove();
+        const card=decline.closest('div[style*="surface2"]');
+        if(card)card.remove();
         notif('Invitation refusée.','amber');
         await loadPendingInvitations();
+        // If no more invitations, close modal
+        const remaining=document.querySelectorAll('#modal-body div[style*="surface2"]');
+        if(!remaining||remaining.length===0)closeModal();
       };
       wrap.appendChild(accept);
       wrap.appendChild(decline);
@@ -3138,6 +3152,8 @@ async function saveCompteInfo(){
     }
     // Save tel locally
     try{localStorage.setItem('im_profile',JSON.stringify({tel:tel}));}catch(e){}
+    // Try to save tel to profiles (column may not exist yet)
+    try{await supa.from('profiles').update({nom:nom}).eq('id',currentUser.id);}catch(e){}
     currentUser.nom=nom;currentUser.email=email;
     // Refresh UI
     document.getElementById('compte-nom-display').textContent=nom;
@@ -3422,7 +3438,7 @@ document.addEventListener('DOMContentLoaded', function(){
   });
   if(btnSaveCompte)btnSaveCompte.addEventListener('click',saveCompteInfo);
   if(btnSavePwd)btnSavePwd.addEventListener('click',saveComptePwd);
-  if(btnCompteLogout)btnCompteLogout.addEventListener('click',doLogout);
+  if(btnCompteLogout)btnCompteLogout.addEventListener('click',async function(){await doLogout();});
   if(comptePwdEye)comptePwdEye.addEventListener('click',function(){
     const i=document.getElementById('compte-pwd');
     i.type=i.type==='password'?'text':'password';
