@@ -1880,7 +1880,7 @@ async function selectAgence(ag){
   folders=[];
   await loadAllData();
   initApp();
-  // Force render current page
+  setupRealtime();
   showPage('dashboard', document.querySelector('.nav-item.active'));
 }
 
@@ -1901,6 +1901,7 @@ async function acceptInvitation(token){
 }
 
 async function doLogout(){
+  if(realtimeChannel){supa.removeChannel(realtimeChannel);realtimeChannel=null;}
   await supa.auth.signOut();
   supaSession=null;
   currentUser={email:'',role:'gerant',nom:'',id:''};
@@ -2118,11 +2119,20 @@ async function showInvitations(){
 async function renderEquipe(){
   const agNom=document.getElementById('equipe-agence-name');
   if(agNom)agNom.textContent='Agence : '+currentAgence.nom;
-  const {data:membres}=await supa.from('membres_agence')
-    .select('role,statut,profiles(id,email,nom)')
+  // Fetch members then fetch their profiles separately to avoid RLS join issues
+  const {data:membresRaw,error}=await supa.from('membres_agence')
+    .select('user_id,role,statut')
     .eq('agence_id',currentAgence.id);
-  const equipe=(membres||[]).map(function(m){
-    return{_id:m.profiles?.id,email:m.profiles?.email||'',nom:m.profiles?.nom||m.profiles?.email||'?',role:m.role||'agent',statut:m.statut||'actif'};
+  if(error){console.error('renderEquipe error:',error);return;}
+  const userIds=(membresRaw||[]).map(function(m){return m.user_id;});
+  let profilesMap={};
+  if(userIds.length>0){
+    const {data:profs}=await supa.from('profiles').select('id,email,nom').in('id',userIds);
+    (profs||[]).forEach(function(p){profilesMap[p.id]=p;});
+  }
+  const equipe=(membresRaw||[]).map(function(m){
+    const p=profilesMap[m.user_id]||{};
+    return{_id:m.user_id,email:p.email||'',nom:p.nom||p.email||'Utilisateur',role:m.role||'agent',statut:m.statut||'actif'};
   });
   const el=document.getElementById('equipe-body');
   const cnt=document.getElementById('equipe-count');
@@ -2613,6 +2623,65 @@ async function saveCommission(){
   }
   await saveFinanceSupabase(c);renderFinance();closeModal();
   notif(mMode.startsWith('add')?'Commission ajoutée.':'Commission mise à jour.');
+}
+
+// === REALTIME ===
+let realtimeChannel=null;
+
+function setupRealtime(){
+  if(realtimeChannel){supa.removeChannel(realtimeChannel);}
+  if(!currentAgence.id)return;
+  realtimeChannel=supa.channel('agence-'+currentAgence.id)
+    .on('postgres_changes',{event:'*',schema:'public',table:'contacts',filter:'agence_id=eq.'+currentAgence.id},function(payload){
+      console.log('Realtime contacts:',payload.eventType);
+      reloadTable('contacts');
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'biens',filter:'agence_id=eq.'+currentAgence.id},function(payload){
+      console.log('Realtime biens:',payload.eventType);
+      reloadTable('biens');
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'documents',filter:'agence_id=eq.'+currentAgence.id},function(payload){
+      reloadTable('documents');
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'evenements',filter:'agence_id=eq.'+currentAgence.id},function(payload){
+      reloadTable('evenements');
+    })
+    .on('postgres_changes',{event:'*',schema:'public',table:'membres_agence',filter:'agence_id=eq.'+currentAgence.id},function(){
+      if(document.getElementById('page-equipe')&&!document.getElementById('page-equipe').classList.contains('hidden')){
+        renderEquipe();
+      }
+    })
+    .subscribe(function(status){
+      console.log('Realtime status:',status);
+    });
+}
+
+async function reloadTable(table){
+  const aid=currentAgence.id;
+  if(table==='contacts'){
+    const {data}=await supa.from('contacts').select('*').eq('agence_id',aid);
+    contacts=(data||[]).map(function(r){return{_id:r.id,prenom:r.prenom||'',nom:r.nom||'',type:r.type||'Acheteur',tel:r.tel||'—',email:r.email||'',budget:r.budget||'—',secteur:r.secteur||'—',statut:r.statut||'Froid'};});
+    if(!document.getElementById('page-contacts').classList.contains('hidden'))renderContacts();
+    updateStats();renderDashboard();
+  } else if(table==='biens'){
+    const {data}=await supa.from('biens').select('*').eq('agence_id',aid);
+    biens=(data||[]).map(function(r){return{_id:r.id,nom:r.nom||'',type:r.type||'Appartement',surface:r.surface||'',prix:r.prix||'',ville:r.ville||'',statut:r.statut||'En vente'};});
+    if(!document.getElementById('page-biens').classList.contains('hidden'))renderBiens();
+    updateStats();renderDashboard();
+  } else if(table==='documents'){
+    const {data}=await supa.from('documents').select('*').eq('agence_id',aid);
+    docs=(data||[]).map(function(r){return{_id:r.id,nom:r.nom||'',type:r.type||'Autre',statut:r.statut||'Actif',bien:r.bien||'',dossier:r.dossier||'',date:r.date||'',fichier:r.fichier||''};});
+    if(!document.getElementById('page-docs').classList.contains('hidden')){renderFolders();renderDocs();}
+  } else if(table==='evenements'){
+    const {data}=await supa.from('evenements').select('*').eq('agence_id',aid);
+    calEvents={};
+    (data||[]).forEach(function(r){
+      if(!calEvents[r.cal_key])calEvents[r.cal_key]=[];
+      calEvents[r.cal_key].push({_id:r.id,title:r.title||'',type:r.type||'Autre',heure:r.heure||''});
+    });
+    if(!document.getElementById('page-agenda').classList.contains('hidden'))renderAgenda();
+    renderDashboard();
+  }
 }
 
 // === PWA ===
