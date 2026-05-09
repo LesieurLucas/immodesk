@@ -403,7 +403,7 @@
       <div class="topbar-actions">
         <button class="btn btn-hide" onclick="openAddContact()"><i class="ti ti-user-plus"></i> Contact</button>
         <button class="btn btn-primary" onclick="openAddBien()"><i class="ti ti-home-plus"></i> Bien</button>
-        <button class="btn" id="btn-api-key" onclick="showKeySettings()" title="Clé API" style="padding:7px 10px;display:none"><i class="ti ti-key"></i></button>
+        <button class="btn" id="btn-api-key" onclick="showKeySettings()" title="Clé IA (admin)" style="padding:7px 10px;display:none"><i class="ti ti-key"></i></button>
         <button class="btn" id="btn-invitations" type="button" onclick="showInvitations()" title="Invitations" style="padding:7px 10px;display:none;position:relative">
           <i class="ti ti-bell"></i>
           <span id="inv-badge" style="position:absolute;top:4px;right:4px;background:#E24B4A;color:#fff;border-radius:50%;width:14px;height:14px;font-size:9px;display:flex;align-items:center;justify-content:center;font-weight:600"></span>
@@ -2152,7 +2152,7 @@ async function doLogout(){
 }
 
 async function showKeySettings(){
-  if(currentUser.role!=='admin'&&currentUser.role!=='gerant'){notif("Accès réservé au gérant ou admin.",'amber');return;}
+  if(currentUser.role!=='admin'){notif("Accès réservé à l'administrateur.",'amber');return;}
   const cur=APIKEY?APIKEY.slice(0,14)+'...':'Non configurée';
   const k=prompt('Clé API IA actuelle : '+cur+'\n\nNouvelle clé (AIzaSy... ou sk-ant-...) :');
   if(!k)return;
@@ -2846,20 +2846,35 @@ async function saveCommission(){
   const type=mMode.replace('add-commission-','').replace('edit-commission-','');
   const isAdd=mMode.startsWith('add');
   const g=function(id){return(document.getElementById(id)||{}).value||'';};
-  const arr=type==='vente'?finance.ventes:finance.locations;
-  // Preserve _id from existing entry when editing
-  const existing=isAdd?null:arr[mIdx];
-  const c={_id:existing?existing._id:null,type:type,bien:g('fc-bien'),agent:g('fc-agent'),date:g('fc-date'),statut:g('fc-statut')||'En attente',notes:g('fc-notes'),com_calc:g('fc-com-calc')};
-  if(type==='vente'){
-    c.prix=g('fc-prix');
-    if(!c.prix||c.prix==='0'){alert('Prix de vente requis');return;}
-    if(isAdd){finance.ventes.push(c);}else{finance.ventes[mIdx]=c;}
+  if(isAdd){
+    // New entry — create object and push
+    const c={_id:null,type:type,bien:g('fc-bien'),agent:g('fc-agent'),date:g('fc-date'),statut:g('fc-statut')||'En attente',notes:g('fc-notes'),com_calc:g('fc-com-calc')};
+    if(type==='vente'){
+      c.prix=g('fc-prix');
+      if(!c.prix||c.prix==='0'){alert('Prix de vente requis');return;}
+      finance.ventes.push(c);
+    } else {
+      c.surface=g('fc-surface');c.loyer=g('fc-loyer');
+      if(!c.surface||c.surface==='0'){alert('Surface requise');return;}
+      finance.locations.push(c);
+    }
+    await saveFinanceSupabase(c);
   } else {
-    c.surface=g('fc-surface');c.loyer=g('fc-loyer');
-    if(!c.surface||c.surface==='0'){alert('Surface requise');return;}
-    if(isAdd){finance.locations.push(c);}else{finance.locations[mIdx]=c;}
+    // Edit — update existing object IN PLACE to keep reference and _id
+    const arr=type==='vente'?finance.ventes:finance.locations;
+    const item=arr[mIdx];
+    item.bien=g('fc-bien');item.agent=g('fc-agent');item.date=g('fc-date');
+    item.statut=g('fc-statut')||'En attente';item.notes=g('fc-notes');item.com_calc=g('fc-com-calc');
+    if(type==='vente'){
+      item.prix=g('fc-prix');
+      if(!item.prix||item.prix==='0'){alert('Prix de vente requis');return;}
+    } else {
+      item.surface=g('fc-surface');item.loyer=g('fc-loyer');
+      if(!item.surface||item.surface==='0'){alert('Surface requise');return;}
+    }
+    await saveFinanceSupabase(item);
   }
-  await saveFinanceSupabase(c);renderFinance();closeModal();
+  renderFinance();closeModal();
   notif(isAdd?'Commission ajoutée.':'Commission mise à jour.');
 }
 
@@ -2947,9 +2962,9 @@ function initApp(){
   // Update AI provider badges (multiple pages)
   const providerLabel=APIKEY?(isGeminiKey(APIKEY)?'Gemini IA':'Claude IA'):'Clé IA non configurée';
   document.querySelectorAll('.ai-badge').forEach(function(b){b.textContent=providerLabel;});
-  // Show API key button for admin and gerant
+  // Show API key button for admin only
   const keyBtn=document.getElementById('btn-api-key');
-  if(keyBtn) keyBtn.style.display=(currentUser.role==='admin'||currentUser.role==='gerant'?'flex':'none');
+  if(keyBtn) keyBtn.style.display=(currentUser.role==='admin'?'flex':'none');
   const role=currentUser.role||'agent';
   const isAdmin=role==='admin';
   const isGerant=role==='gerant'||isAdmin;
