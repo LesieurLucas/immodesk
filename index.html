@@ -3166,12 +3166,15 @@ async function saveBienSupabase(b){
 async function saveDocSupabase(d){
   savingTable='documents';
   const aid=currentAgence.id;
+  console.log('saveDocSupabase agence_id=',aid,'user_id=',currentUser.id,'nom=',d.nom,'_id=',d._id);
   try{
     if(d._id){
-      await dbUpdate('documents',d._id,{nom:d.nom,type:d.type,statut:d.statut,bien:d.bien||'',dossier:d.dossier||'',date:d.date||'',fichier:d.fichier||'',user_id:currentUser.id,agence_id:aid});
+      const {error}=await supa.from('documents').update({nom:d.nom,type:d.type,statut:d.statut,bien:d.bien||'',dossier:d.dossier||'',date:d.date||'',fichier:d.fichier||'',user_id:currentUser.id,agence_id:aid}).eq('id',d._id);
+      console.log('update error:',error);
     } else {
-      const row=await dbInsert('documents',{user_id:currentUser.id,agence_id:aid,nom:d.nom,type:d.type,statut:d.statut,bien:d.bien||'',dossier:d.dossier||'',date:d.date||'',fichier:d.fichier||''});
-      if(row)d._id=row.id;
+      const {data,error}=await supa.from('documents').insert({user_id:currentUser.id,agence_id:aid,nom:d.nom,type:d.type,statut:d.statut,bien:d.bien||'',dossier:d.dossier||'',date:d.date||'',fichier:d.fichier||''}).select().single();
+      console.log('insert data:',data,'error:',error);
+      if(data)d._id=data.id;
     }
   }finally{setTimeout(function(){savingTable=null;},2000);}
 }
