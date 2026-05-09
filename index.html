@@ -2386,14 +2386,12 @@ function openEditRole(m){
 async function saveEditRole(){
   const uid=document.getElementById('edit-role-uid')?.value||mIdx;
   const newRole=document.getElementById('edit-role-select')?.value;
-  console.log('saveEditRole uid=',uid,'role=',newRole,'agence=',currentAgence.id);
   if(!newRole||!uid){notif('Erreur : uid ou rôle manquant.','amber');return;}
   const {data,error}=await supa.from('membres_agence')
     .update({role:newRole})
     .eq('agence_id',currentAgence.id)
     .eq('user_id',uid)
     .select();
-  console.log('update result:',data,'error:',error);
   if(error){notif('Erreur : '+error.message,'amber');return;}
   if(!data||data.length===0){
     notif('Aucune ligne mise à jour — vérifiez les permissions.','amber');
@@ -2949,9 +2947,9 @@ let realtimePaused=false;
 let savingTable=null; // which table is being saved
 
 function setupRealtime(){
-  if(realtimeChannel){supa.removeChannel(realtimeChannel);}
+  if(realtimeChannel){supa.removeChannel(realtimeChannel);realtimeChannel=null;}
   if(!currentAgence.id)return;
-  realtimeChannel=supa.channel('agence-'+currentAgence.id)
+  realtimeChannel=supa.channel('agence-'+currentAgence.id,{config:{broadcast:{self:false}}})
     .on('postgres_changes',{event:'*',schema:'public',table:'contacts'},function(payload){
       if(payload.new?.agence_id===currentAgence.id||payload.old?.agence_id===currentAgence.id)reloadTable('contacts');
     })
@@ -2983,6 +2981,12 @@ function setupRealtime(){
     })
     .subscribe(function(status){
       console.log('Realtime status:',status);
+      if(status==='CLOSED'||status==='CHANNEL_ERROR'){
+        // Auto-reconnect after 3 seconds
+        setTimeout(function(){
+          if(currentAgence.id)setupRealtime();
+        },3000);
+      }
     });
 }
 
@@ -3144,10 +3148,10 @@ async function saveContactSupabase(c){
   const aid=currentAgence.id;
   try{
     if(c._id){
-      await dbUpdate('contacts',c._id,{prenom:c.prenom,nom:c.nom,type:c.type,tel:c.tel,email:c.email||'',budget:c.budget,secteur:c.secteur,statut:c.statut,user_id:currentUser.id,agence_id:aid});
+      await supa.from('contacts').update({prenom:c.prenom,nom:c.nom,type:c.type,tel:c.tel,email:c.email||'',budget:c.budget,secteur:c.secteur,statut:c.statut,user_id:currentUser.id,agence_id:aid}).eq('id',c._id);
     } else {
-      const row=await dbInsert('contacts',{user_id:currentUser.id,agence_id:aid,prenom:c.prenom,nom:c.nom,type:c.type,tel:c.tel,email:c.email||'',budget:c.budget,secteur:c.secteur,statut:c.statut});
-      if(row)c._id=row.id;
+      const {data}=await supa.from('contacts').insert({user_id:currentUser.id,agence_id:aid,prenom:c.prenom,nom:c.nom,type:c.type,tel:c.tel,email:c.email||'',budget:c.budget,secteur:c.secteur,statut:c.statut}).select().single();
+      if(data)c._id=data.id;
     }
   }finally{setTimeout(function(){savingTable=null;},2000);}
 }
@@ -3156,24 +3160,21 @@ async function saveBienSupabase(b){
   const aid=currentAgence.id;
   try{
     if(b._id){
-      await dbUpdate('biens',b._id,{nom:b.nom,type:b.type,surface:b.surface,prix:b.prix,ville:b.ville,statut:b.statut,user_id:currentUser.id,agence_id:aid});
+      await supa.from('biens').update({nom:b.nom,type:b.type,surface:b.surface,prix:b.prix,ville:b.ville,statut:b.statut,user_id:currentUser.id,agence_id:aid}).eq('id',b._id);
     } else {
-      const row=await dbInsert('biens',{user_id:currentUser.id,agence_id:aid,nom:b.nom,type:b.type,surface:b.surface,prix:b.prix,ville:b.ville,statut:b.statut});
-      if(row)b._id=row.id;
+      const {data}=await supa.from('biens').insert({user_id:currentUser.id,agence_id:aid,nom:b.nom,type:b.type,surface:b.surface,prix:b.prix,ville:b.ville,statut:b.statut}).select().single();
+      if(data)b._id=data.id;
     }
   }finally{setTimeout(function(){savingTable=null;},2000);}
 }
 async function saveDocSupabase(d){
   savingTable='documents';
   const aid=currentAgence.id;
-  console.log('saveDocSupabase agence_id=',aid,'user_id=',currentUser.id,'nom=',d.nom,'_id=',d._id);
   try{
     if(d._id){
-      const {error}=await supa.from('documents').update({nom:d.nom,type:d.type,statut:d.statut,bien:d.bien||'',dossier:d.dossier||'',date:d.date||'',fichier:d.fichier||'',user_id:currentUser.id,agence_id:aid}).eq('id',d._id);
-      console.log('update error:',error);
+      await supa.from('documents').update({nom:d.nom,type:d.type,statut:d.statut,bien:d.bien||'',dossier:d.dossier||'',date:d.date||'',fichier:d.fichier||'',user_id:currentUser.id,agence_id:aid}).eq('id',d._id);
     } else {
-      const {data,error}=await supa.from('documents').insert({user_id:currentUser.id,agence_id:aid,nom:d.nom,type:d.type,statut:d.statut,bien:d.bien||'',dossier:d.dossier||'',date:d.date||'',fichier:d.fichier||''}).select().single();
-      console.log('insert data:',data,'error:',error);
+      const {data}=await supa.from('documents').insert({user_id:currentUser.id,agence_id:aid,nom:d.nom,type:d.type,statut:d.statut,bien:d.bien||'',dossier:d.dossier||'',date:d.date||'',fichier:d.fichier||''}).select().single();
       if(data)d._id=data.id;
     }
   }finally{setTimeout(function(){savingTable=null;},2000);}
