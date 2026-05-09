@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://lesieurlucas.github.io/immosync/sitemap.xml
