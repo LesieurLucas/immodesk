@@ -2370,17 +2370,19 @@ function openEditRole(m){
     +'<div class="form-group"><label>Rôle</label>'
     +'<select id="edit-role-select">'
     +roles.map(function(r){return '<option value="'+r+'"'+(m.role===r?' selected':'')+'>'+( ROLE_LABELS[r]||r)+'</option>';}).join('')
-    +'</select></div>';
+    +'</select></div>'
+    +'<input type="hidden" id="edit-role-uid" value="'+(m._id||'')+'">';
   openModal('Modifier le rôle', html, 'edit-role', m._id);
 }
 
 async function saveEditRole(){
-  const uid=mIdx;
+  const uid=document.getElementById('edit-role-uid')?.value||mIdx;
   const newRole=document.getElementById('edit-role-select')?.value;
-  if(!newRole)return;
-  await supa.from('membres_agence').update({role:newRole}).eq('agence_id',currentAgence.id).eq('user_id',uid);
+  if(!newRole||!uid){notif('Erreur : données manquantes.','amber');return;}
+  const {error}=await supa.from('membres_agence').update({role:newRole}).eq('agence_id',currentAgence.id).eq('user_id',uid);
+  if(error){notif('Erreur : '+error.message,'amber');return;}
   closeModal();
-  notif('Rôle mis à jour.');
+  notif('Rôle mis à jour en '+newRole+'.');
   renderEquipe();
 }
 
