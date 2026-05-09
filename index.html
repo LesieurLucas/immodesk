@@ -2407,10 +2407,27 @@ async function renderEquipe(){
     tdStatut.innerHTML='<span class="badge '+statutBadge+'">'+m.statut+'</span>';
     tr.appendChild(tdStatut);
     const tdAct=document.createElement('td');
-    // Only show remove for non-owner members
+    const actWrap=document.createElement('div');
+    actWrap.className='actions-cell';
     if(m._id!==currentUser.id){
+      // Role selector
+      const roleSelect=document.createElement('select');
+      roleSelect.style.cssText='font-size:12px;padding:4px 6px;border-radius:var(--radius);border:0.5px solid var(--border);background:var(--surface2);cursor:pointer;margin-right:4px';
+      ['gerant','agent','secretaire'].forEach(function(r){
+        const opt=document.createElement('option');
+        opt.value=r;opt.textContent=ROLE_LABELS[r]||r;
+        if(r===m.role)opt.selected=true;
+        roleSelect.appendChild(opt);
+      });
+      roleSelect.onchange=(function(uid,sel){return async function(){
+        await supa.from('membres_agence').update({role:sel.value}).eq('agence_id',currentAgence.id).eq('user_id',uid);
+        notif('Rôle mis à jour.');
+        renderEquipe();
+      };})(m._id,roleSelect);
+      actWrap.appendChild(roleSelect);
+      // Remove button
       const del=document.createElement('button');
-      del.className='btn btn-sm btn-danger'; del.title='Retirer';
+      del.className='btn btn-sm btn-danger';del.title='Retirer';
       del.innerHTML='<i class="ti ti-trash"></i>';
       del.onclick=(function(uid){return async function(){
         if(!confirm('Retirer ce membre de l\'agence ?'))return;
@@ -2418,8 +2435,9 @@ async function renderEquipe(){
         renderEquipe();
         notif('Membre retiré.','amber');
       };})(m._id);
-      tdAct.appendChild(del);
+      actWrap.appendChild(del);
     }
+    tdAct.appendChild(actWrap);
     tr.appendChild(tdAct);
     el.appendChild(tr);
   });
