@@ -934,9 +934,19 @@ function openEditBien(idx){openModal('Modifier le bien',bForm(biens[idx]),'edit-
 async function saveBien(){
   const nom=document.getElementById('m-bnom').value.trim();
   if(!nom){alert('Nom du bien requis');return;}
-  const d={nom,type:document.getElementById('m-btype').value,surface:document.getElementById('m-bsurf').value||'—',prix:document.getElementById('m-bprix').value||'—',ville:document.getElementById('m-bville').value||'—',statut:document.getElementById('m-bstatut').value};
-  const oldNom=mMode==='edit-bien'?biens[mIdx]?.nom:null;
   const isAdd=mMode==='add-bien';
+  const oldBien=isAdd?null:biens[mIdx];
+  const oldNom=oldBien?oldBien.nom:null;
+  // Keep _id from existing bien for update
+  const d={
+    _id: oldBien?oldBien._id:null,
+    nom:nom,
+    type:document.getElementById('m-btype').value,
+    surface:document.getElementById('m-bsurf').value||'—',
+    prix:document.getElementById('m-bprix').value||'—',
+    ville:document.getElementById('m-bville').value||'—',
+    statut:document.getElementById('m-bstatut').value
+  };
   if(isAdd){biens.push(d);}else{biens[mIdx]=d;}
   syncBienToFinance(d,oldNom);
   closeModal();
