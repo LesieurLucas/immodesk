@@ -2844,19 +2844,23 @@ async function deleteCommission(type,idx){
 }
 async function saveCommission(){
   const type=mMode.replace('add-commission-','').replace('edit-commission-','');
+  const isAdd=mMode.startsWith('add');
   const g=function(id){return(document.getElementById(id)||{}).value||'';};
-  const c={type:type,bien:g('fc-bien'),agent:g('fc-agent'),date:g('fc-date'),statut:g('fc-statut')||'En attente',notes:g('fc-notes'),com_calc:g('fc-com-calc')};
+  const arr=type==='vente'?finance.ventes:finance.locations;
+  // Preserve _id from existing entry when editing
+  const existing=isAdd?null:arr[mIdx];
+  const c={_id:existing?existing._id:null,type:type,bien:g('fc-bien'),agent:g('fc-agent'),date:g('fc-date'),statut:g('fc-statut')||'En attente',notes:g('fc-notes'),com_calc:g('fc-com-calc')};
   if(type==='vente'){
     c.prix=g('fc-prix');
     if(!c.prix||c.prix==='0'){alert('Prix de vente requis');return;}
-    if(mMode.startsWith('add')){finance.ventes.push(c);}else{finance.ventes[mIdx]=c;}
+    if(isAdd){finance.ventes.push(c);}else{finance.ventes[mIdx]=c;}
   } else {
     c.surface=g('fc-surface');c.loyer=g('fc-loyer');
     if(!c.surface||c.surface==='0'){alert('Surface requise');return;}
-    if(mMode.startsWith('add')){finance.locations.push(c);}else{finance.locations[mIdx]=c;}
+    if(isAdd){finance.locations.push(c);}else{finance.locations[mIdx]=c;}
   }
   await saveFinanceSupabase(c);renderFinance();closeModal();
-  notif(mMode.startsWith('add')?'Commission ajoutée.':'Commission mise à jour.');
+  notif(isAdd?'Commission ajoutée.':'Commission mise à jour.');
 }
 
 // === REALTIME ===
