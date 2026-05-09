@@ -2156,6 +2156,7 @@ async function acceptInvitation(token){
 
 async function doLogout(){
   if(realtimeChannel){supa.removeChannel(realtimeChannel);realtimeChannel=null;}
+  if(window._pollInterval){clearInterval(window._pollInterval);window._pollInterval=null;}
   await supa.auth.signOut();
   supaSession=null;
   currentUser={email:'',role:'gerant',nom:'',id:''};
@@ -2985,14 +2986,26 @@ function setupRealtime(){
       }
     })
     .subscribe(function(status){
-      console.log('Realtime status:',status);
       if(status==='CLOSED'||status==='CHANNEL_ERROR'){
-        // Auto-reconnect after 3 seconds
-        setTimeout(function(){
-          if(currentAgence.id)setupRealtime();
-        },3000);
+        setTimeout(function(){if(currentAgence.id)setupRealtime();},3000);
       }
     });
+
+  // Polling fallback every 8 seconds — catches what Realtime misses
+  if(window._pollInterval)clearInterval(window._pollInterval);
+  window._pollInterval=setInterval(async function(){
+    if(!currentAgence.id||savingTable)return;
+    const aid=currentAgence.id;
+    // Check if counts changed — lightweight poll
+    const [rc,rb,rd]=await Promise.all([
+      supa.from('contacts').select('*',{count:'exact',head:true}).eq('agence_id',aid),
+      supa.from('biens').select('*',{count:'exact',head:true}).eq('agence_id',aid),
+      supa.from('documents').select('*',{count:'exact',head:true}).eq('agence_id',aid)
+    ]);
+    if(rc.count!==null&&rc.count!==contacts.length)reloadTable('contacts');
+    if(rb.count!==null&&rb.count!==biens.length)reloadTable('biens');
+    if(rd.count!==null&&rd.count!==docs.length)reloadTable('documents');
+  },8000);
 }
 
 async function reloadTable(table){
